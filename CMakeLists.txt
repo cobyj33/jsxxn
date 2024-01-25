@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.7)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_STANDARD 17)
+
+project(json LANGUAGES CXX
+VERSION 0.0.0)
+
+set(JSON_COMPILE_OPTIONS -Wall -Wextra -Wpedantic)
+if (MSVC)
+  set(JSON_COMPILE_OPTIONS /std:c++17 /W4 /WX)
+endif()
+
+set(JSON_EXAMPLES_DIRECTORY ${CMAKE_SOURCE_DIR}/examples)
+set(JSON_SRC_DIRECTORY ${CMAKE_SOURCE_DIR}/src)
+set(JSON_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/include)
+set(JSON_TEST_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
+
+set(JSON_SOURCE_FILES ${JSON_SRC_DIRECTORY}/json.cpp)
+
+add_library(json STATIC ${JSON_SOURCE_FILES})
+target_include_directories(json PUBLIC ${JSON_INCLUDE_DIRECTORY})
+target_compile_options(json PUBLIC ${JSON_COMPILE_OPTIONS})
+
+add_subdirectory(${JSON_EXAMPLES_DIRECTORY})
+add_subdirectory(${JSON_TEST_DIRECTORY})

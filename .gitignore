@@ -1,0 +1,12 @@
+/.vscode
+/**build**/
+.cache/
+todo.txt
+tags
+blueprints/
+COMMITLOGGING.md
+devscripts/
+ignore/
+
+install
+test*.sh

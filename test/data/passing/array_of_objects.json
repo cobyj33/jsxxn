@@ -1,0 +1,52 @@
+[
+  {
+    "album": "Discovery",
+    "artist": "Daft Punk",
+    "date": {
+      "day": 12,
+      "month": "March",
+      "year": 2001
+    },
+    "tracklist": [
+      "One More Time",
+      "Aerodynamic",
+      "Digital Love",
+      "Harder, Better, Faster, Stronger",
+      "Crescendolls",
+      "Nightvision",
+      "Superheroes",
+      "High Life",
+      "Something About Us",
+      "Voyager",
+      "Veridis Quo",
+      "Short Circuit",
+      "Face To Face",
+      "Too Long"
+    ],
+    "hidden": false
+  },
+  {
+    "album": "Exodus",
+    "artist": "Bob Marley",
+    "date": {
+      "day": 3,
+      "month": "June",
+      "year": 1977
+    },
+    "tracklist": [
+      "Natural Mystic",
+      "So Much Things To Say",
+      "Guiltiness",
+      "The Heathen",
+      "Exodus",
+      "Jamming",
+      "Waiting In Vain",
+      "Turn Your Lights Down Low",
+      "Three Little Birds",
+      "One Love / People Get Ready - Medley",
+      "Jamming - 12\" Version",
+      "Punky Reggae Party - 12\" Version"
+    ],
+    "hidden": false
+  }
+]

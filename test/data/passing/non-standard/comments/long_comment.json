@@ -1,0 +1,15 @@
+/*
+ This is a nonstandard multiline comment
+*/
+{
+  /*
+    Inside of an object!
+  */
+  "data": "data",
+  /*
+    In the middle of an object
+  */
+  "name": [
+    // In an array. This array should be processed as empty
+  ]
+}

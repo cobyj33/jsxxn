@@ -1,0 +1,10 @@
+[
+  "\"Escaped Quotes\"",
+  "\nEscaped\nNewlines\n",
+  "Escaped\b Backspace",
+  "\tEscaped Tab\t",
+  "\\ Escaped Bac\\kslash \\",
+  "\/ Escaped Sl\/ash \/",
+  "Escaped \r\n Linefeed",
+  "Consecutives: \n\t\r\\\\\/\/\b\t\t\n\n\r\nn\rr\t\tt\\b"
+]
