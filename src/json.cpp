@@ -58,7 +58,9 @@ namespace json {
   std::string json_token_str(Token token);
   bool exact_match(std::string_view str, std::string_view check, std::size_t start);
   char stridx(std::string_view str, std::size_t val);
-  std::string u16_as_hex(std::uint16_t val);
+  std::string u16_as_utf8(std::uint16_t val);
+  std::string u16_as_hexstr(std::uint16_t val);
+  std::uint16_t xdigit_as_u16(char ch);
 
   class JSONTokenizer {
     public: 
@@ -110,14 +112,20 @@ namespace json {
     private:
 
       /**
-       * For a number to be identified as an integer, it must:
-       * * Not have a fractional part (.DIGITS)
-       * * Not have a negative exponential part (e-DIGITS | E-DIGITS)
+       * This function is only called from within tokenize_number whever
+       * these conditions are met:
+       * * The number does not have a fractional part (.DIGITS)
+       * * The number does not have a negative exponential part ( "e-" DIGITS | "E-" DIGITS)
        * 
-       * These two cases will be true whenever tokenize_int is called, and therefore
-       * do not need to be checked again here
+       * These two cases will be true whenever tokenize_int is called,
+       * and therefore do not need to be checked again here.
+       * 
+       * Note that tokenize_int will defer to tokenize_float upon an overflow
+       * being detected, as a double has a much larger maximum value than a
+       * 64-bit signed integer
       */
       Token tokenize_int() {
+        const std::size_t start = this->curr; // 
         std::int64_t num = 0;
         std::int64_t sign = 1;
 
@@ -128,15 +136,18 @@ namespace json {
 
         for (; this->curr < this->src.length() && std::isdigit(this->src[this->curr]); this->curr++) {
           std::int64_t digit = (this->src[this->curr] - '0');
-          if ((INT64_MAX - digit) / 10 <= num)
-            throw std::runtime_error("[tokenize_int] number too large");
+          if ((INT64_MAX - digit) / 10 <= num) {
+            this->curr = start;
+            return this->tokenize_float(); 
+          }
+
           num = num * 10LL + digit;
         }
 
         // read exponential part
         if (stridx(this->src, this->curr) == 'e' || stridx(this->src, this->curr) == 'E') {
           this->curr++;
-          constexpr int MAX_EXPONENTIAL = 308;
+          constexpr int MAX_EXPONENTIAL = 20;
           unsigned int exponential = 0;
 
           if (stridx(this->src, this->curr) == '+') this->curr++;
@@ -146,13 +157,18 @@ namespace json {
 
           for (; this->curr < this->src.length() && std::isdigit(this->src[this->curr]); this->curr++) {
             exponential = exponential * 10 + (this->src[this->curr] - '0');
-            if (exponential > MAX_EXPONENTIAL)
-              throw std::runtime_error("[tokenize_int] number too large");
+            if (exponential > MAX_EXPONENTIAL) {
+              this->curr = start;
+              return this->tokenize_float(); 
+            }
           }
 
           for (; exponential != 0; exponential--) {
-            if (INT64_MAX / 10LL <= num)
-              throw std::runtime_error("[tokenize_int] number too large");
+            if (INT64_MAX / 10LL <= num) {
+              this->curr = start;
+              return this->tokenize_float(); 
+            }
+
             num *= 10LL;
           }
         }
@@ -257,7 +273,8 @@ namespace json {
           /**
            * I decided to not bother for missing integer parts on the exponentials here,
            * as tokenize_float would need to check anyway since there is an early
-           * exit whenever a decimal point is detected. 
+           * exit whenever a decimal point is detected. Therefore, both tokenize_int
+           * and tokenize_float check for a missing integer part
           */
           switch (stridx(this->src, lookahead)) {
             case '-': return this->tokenize_float();
@@ -298,17 +315,21 @@ namespace json {
                 case 't': extracted_str.push_back('\t'); this->curr++; break; 
                 case 'u': { // unicode :(
                   this->curr++; // consume u
-                  std::string hexval;
+                  std::uint16_t hexval = 0;
                   
                   if (this->curr + 4 >= this->src.size())
                     throw std::runtime_error("Incomplete unicode hex value");
 
                   for (int i = 0; i < 4; i++) {
                     this->curr++;
-                    if (!std::isxdigit((this->src[this->curr])))
+                    char xch = this->src[this->curr];
+                    if (!std::isxdigit((xch)))
                       throw std::runtime_error("Incomplete unicode hex value");
-                    hexval += this->src[this->curr];
+                    hexval = hexval * 16 + xdigit_as_u16(xch);
                   }
+
+
+                  extracted_str += u16_as_utf8(hexval);
 
                   // TODO: Implement UTF-8 substitution
                 } break;
@@ -403,13 +424,15 @@ namespace json {
             case '\r': serialized_str.append("\\r"); break;
             case '\t': serialized_str.append("\\t"); break;
             default: {
-              // other control characters get turned into unicode escapes
+              
+              // control characters get turned into unicode escapes
               if (std::iscntrl(str[i])) {
                 serialized_str += "\\u";
-                serialized_str += u16_as_hex(str[i]);
-              } else {
+                serialized_str += u16_as_hexstr(str[i]);
+              } else { // all other characters can just be unescaped
                 serialized_str.push_back(str[i]);
               }
+
             }
           }
         }
@@ -428,7 +451,7 @@ namespace json {
     return std::visit(overloaded { 
       [&](const JSONLiteral& literal) { return json_literal_serialize(literal);  },
       [&](const JSONObject& object) {
-        if (object.size() == 0) return std::string("{}\n");
+        if (object.size() == 0) return std::string("{}");
         std::string tab(depth * 2, ' ');
         std::string output = "{\n";
 
@@ -436,7 +459,7 @@ namespace json {
         for (const std::pair<const std::string, JSON>& entry : object) {
           output += tab;
           output += "  ";
-          output += "\"" + entry.first + "\""; 
+          output += json_literal_serialize(entry.first); 
           output += ": "; 
           output += serialize(entry.second, depth + 1);
           if (i != object.size() - 1) output += ", ";
@@ -450,7 +473,7 @@ namespace json {
         return output;
       },
       [&](const JSONArray& arr) {
-        if (arr.size() == 0) return std::string("[]\n");
+        if (arr.size() == 0) return std::string("[]");
         std::string tab(depth * 2, ' ');
         std::string output = "[\n";
 
@@ -917,8 +940,7 @@ namespace json {
       case 30: return "RS";
       case 31: return "US";
       case 127: return "DEL";
-      default: if (std::isprint(ch)) return std::string() + ch;
-               else return std::to_string(static_cast<int>(ch));
+      default: return std::string() + ch;
     }
   }
 
@@ -961,11 +983,36 @@ namespace json {
     return i == check.length();
   }
 
-  std::string u16_as_hex(std::uint16_t val) {
+  std::string u16_as_hexstr(std::uint16_t val) {
     std::stringstream res;
     res << std::setfill('0') << std::setw(sizeof(std::uint16_t)*2);
     res << std::hex << val;
     return res.str();
+  }
+
+  std::string u16_as_utf8(std::uint16_t val) {
+    std::string res;
+    if (val < 0x0080) { // ascii
+      res += static_cast<char>(val);
+      return res;
+    } else if (val < 0x0800) {
+      res += static_cast<char>(0b110'00000 + ((val & 0b0000'0111'1100'0000) >> 6));
+      res += static_cast<char>(0b10'000000 + (val & 0b0000'0000'0011'1111));
+      return res;
+    } else { // val <= 0xFFFF
+      res += static_cast<char>(0b1110'0000 + ((val & 0b1111'0000'0000'0000) >> 12));
+      res += static_cast<char>(0b10'000000 + ((val & 0b0000'1111'1100'0000) >> 6));
+      res += static_cast<char>(0b10'000000 + ((val & 0b0000'0000'0011'1111)));
+      return res;
+    }
+
+    // val <= 0xFFFF
+  }
+
+  std::uint16_t xdigit_as_u16(char ch) {
+    return (ch >= '0' && ch <= '9') * static_cast<std::uint16_t>(ch - '0') +
+      (ch >= 'A' && ch <= 'F') * (static_cast<std::uint16_t>(ch - 'A' + 10)) +
+      (ch >= 'a' && ch <= 'f') * (static_cast<std::uint16_t>(ch - 'a' + 10));
   }
 
 };
