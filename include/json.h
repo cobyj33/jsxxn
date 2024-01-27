@@ -58,6 +58,8 @@ namespace json {
       JSON(std::int64_t value);
       JSON(double value);
       
+      JSON(const char* value);
+      
       JSON(std::string value);
       JSON(const std::string& value);
       JSON(std::string&& value);
