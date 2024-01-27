@@ -40,6 +40,9 @@ namespace json {
   const char* json_value_type_str(JSONValueType jvt);
   bool json_value_equals_deep(const JSONValue& a, const JSONValue& b);
 
+  std::string serialize(const JSON& json);
+  JSON parse(std::string_view str);
+
   class JSON {
     public:
       JSONValue value;
@@ -93,9 +96,6 @@ namespace json {
       JSON operator[](std::string_view key);
       JSON operator[](std::size_t idx);
   };
-
-  std::string serialize(JSON json);
-  JSON parse(std::string_view str);
 };
 
 #endif

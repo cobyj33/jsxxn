@@ -158,7 +158,6 @@ namespace json {
             case '\n':
             case '\t': this->curr++; break;
             case '-':
-            case '.':
             case '0':
             case '1':
             case '2':
@@ -182,13 +181,63 @@ namespace json {
 
     private:
 
-      Token tokenize_number() {
-        double number = 0;
-        bool is_frac = false;
-        double frac_mult = 0.1;
+
+      /**
+       * For a number to be identified as an integer, it must:
+       * * Not have a fractional part (.DIGITS)
+       * * Not have a negative exponential part (e-DIGITS | E-DIGITS)
+      */
+      Token tokenize_int() {
+        std::int64_t num = 0;
+        std::int64_t sign = 1;
+
+        if (this->src[this->curr] == '-') { // read minus sign
+          this->curr++;
+          sign = -1;
+        }
+
+        for (; this->curr < this->src.length() && std::isdigit(this->src[this->curr]); this->curr++) {
+          std::int64_t digit = (this->src[this->curr] - '0');
+          if ((INT64_MAX - digit) / 10 <= num)
+            throw std::runtime_error("[tokenize_int] number too large");
+          num = num * 10 + digit;
+        }
+
+        // read exponential part
+        if (stridx(this->src, this->curr) == 'e' || stridx(this->src, this->curr) == 'E') {
+          this->curr++;
+          constexpr int MAX_EXPONENTIAL = 308;
+          unsigned int exponential = 0;
+
+          switch (stridx(this->src, this->curr)) {
+            case '+': this->curr++; break;
+            case '0': case '1': case '2': case '3': case '4':
+            case '5': case '6': case '7': case '8':
+            case '9': break;
+          }
+
+          for (; this->curr < this->src.length() && std::isdigit(this->src[this->curr]); this->curr++) {
+            exponential = exponential * 10 + (this->src[this->curr] - '0');
+            if (exponential > MAX_EXPONENTIAL)
+              throw std::runtime_error("[tokenize_int] number too large");
+          }
+
+          for (; exponential != 0; exponential--) {
+            if (INT64_MAX / 10LL <= num)
+              throw std::runtime_error("[tokenize_int] number too large");
+            num *= 10LL;
+          }
+        }
+
+        num *= sign;
+        return Token(TokenType::NUMBER, JSONNumber(num));
+      }
+
+      Token tokenize_float() {
+        double num = 0;
         int sign = 1;
 
-        if (stridx(this->src, this->curr) == '-') { // read minus sign
+        if (this->src[this->curr] == '-') { // read minus sign
           this->curr++;
           sign = -1;
         }
@@ -196,50 +245,104 @@ namespace json {
         // read integer part
         for (; this->curr < this->src.length() && std::isdigit(this->src[this->curr]); this->curr++) {
           double digit = (this->src[this->curr] - '0');
-          if ((DBL_MAX - digit) / 10 <= number) throw std::runtime_error("[tokenize_number] number too large");
-          number = number * 10 + digit;
+          if ((DBL_MAX - digit) / 10 <= num) throw std::runtime_error("[tokenize_float] number too large");
+          num = num * 10 + digit;
         }
 
-        is_frac = stridx(this->src, this->curr) == '.';
-        if (is_frac) { // read fractional part
-          this->curr++;
+        if (stridx(this->src, this->curr) == '.') { // read fractional part
+          this->curr++; // consume decimal
+          double frac_mult = 0.1;
           for (; this->curr < this->src.length() && std::isdigit(this->src[this->curr]); this->curr++) {
-            number += (this->src[this->curr] - '0') * frac_mult;
+            num += (this->src[this->curr] - '0') * frac_mult;
             frac_mult /= 10;
           }
         }
 
         // read exponential part
-        switch (stridx(this->src, this->curr)) {
-          case 'e':
-          case 'E': {
-            this->curr++;
-            bool minus = false;
-            unsigned int exponential = 0;
-            if (stridx(this->src, this->curr) == '-') { // read minus sign
-              this->curr++;
-              minus = true;
-            }
+        if (stridx(this->src, this->curr) == 'e' || stridx(this->src, this->curr) == 'E') {
+          this->curr++;
+          bool minus = false;
+          constexpr int MAX_EXPONENTIAL = 308;
+          unsigned int exponential = 0;
 
-            for (; this->curr < this->src.length() && std::isdigit(this->src[this->curr]); this->curr++) {
-              exponential = exponential * 10 + (this->src[this->curr] - '0');
-              if (exponential > 308) throw std::runtime_error("[tokenize_number] number too large");
-            }
+          switch (stridx(this->src, this->curr)) {
+            case '-': this->curr++; minus = true; break;
+            case '+': this->curr++; minus = false; break;
+          }
 
-            if (minus) {
-              for (; exponential != 0; exponential--) number *= 0.1;
-            } else {
-              for (; exponential != 0; exponential--) {
-                if (DBL_MAX / 10 <= number) throw std::runtime_error("[tokenize_number] number too large");
-                number *= 10;
-              }
+          for (; this->curr < this->src.length() && std::isdigit(this->src[this->curr]); this->curr++) {
+            exponential = exponential * 10 + (this->src[this->curr] - '0');
+            if (exponential > MAX_EXPONENTIAL)
+              throw std::runtime_error("[tokenize_float] number too large");
+          }
+
+          if (minus) {
+            for (; exponential != 0; exponential--) num *= 0.1;
+          } else {
+            for (; exponential != 0; exponential--) {
+              if (DBL_MAX / 10 <= num)
+                throw std::runtime_error("[tokenize_float] number too large");
+              num *= 10;
             }
-          } break;
+          }
         }
-        
 
-        JSONNumber json_number = sign * ((!is_frac && number < INT64_MAX) ? (std::int64_t)(number) : number);
-        return Token(TokenType::NUMBER, json_number);
+        num *= sign;
+        return Token(TokenType::NUMBER, JSONNumber(num));
+      }
+
+      /**
+       * looks ahead to determine if an int or a float shall be parsed
+       * 
+       * Also handles many parsing errors, which largely simplifies the
+       * implementation of tokenize_int and tokenize_float
+      */
+      Token tokenize_number() {
+        std::size_t lookahead = this->curr;
+
+        if (this->src[lookahead] == '-') lookahead++;
+
+        if (!std::isdigit(stridx(this->src, lookahead)))
+          throw std::runtime_error("[tokenize_number] recognized number without integer part");
+
+        if (this->src[lookahead] == '0' && std::isdigit(stridx(this->src, lookahead + 1)))
+          throw std::runtime_error("[tokenize_number] leading zeros detected"); 
+
+        for (; lookahead < this->src.length() && std::isdigit(this->src[lookahead]); lookahead++);
+
+        if (stridx(this->src, lookahead) == '.') {
+          lookahead++;
+          if (!std::isdigit(stridx(this->src, lookahead)))
+            throw std::runtime_error("[tokenize_number] trailing decimal point");
+          return this->tokenize_float();
+        }
+
+        if (stridx(this->src, lookahead) == 'e' || stridx(this->src, lookahead) == 'E') {
+          lookahead++;
+          switch (stridx(this->src, lookahead)) {
+            case '-': {
+              lookahead++;
+              if (!std::isdigit(stridx(this->src, lookahead)))
+                throw std::runtime_error("[tokenize_number] trailing exponential -");
+              return this->tokenize_float();
+            } break;
+            case '+': {
+              lookahead++;
+              if (!std::isdigit(stridx(this->src, lookahead)))
+                throw std::runtime_error("[tokenize_number] trailing exponential +");
+              return this->tokenize_int();
+            } break;
+            case '0': case '1': case '2': case '3':
+            case '4': case '5': case '6': case '7': case '8':
+            case '9': return this->tokenize_int();
+            default: throw std::runtime_error("Exponential part followed by "
+                "invalid character: " + char_code_str(stridx(this->src, this->curr)));
+          }
+        }
+
+        // fall through to int, as no decimal point was found, nor was any
+        // negative exponential part found
+        return this->tokenize_int();
       }
 
       Token tokenize_string() {
@@ -247,11 +350,13 @@ namespace json {
         std::string extracted_str;
 
         for (; this->src[this->curr] != '"'; this->curr++) {
-          if (this->curr >= this->src.length()) throw std::runtime_error("Unclosed String");
+          if (this->curr >= this->src.length())
+            throw std::runtime_error("Unclosed String");
+            
           switch (this->src[this->curr]) {
             case '\\': {
               char next = stridx(this->src, this->curr + 1);
-              switch (next) {
+              switch (stridx(this->src, this->curr + 1)) {
                 case '"': extracted_str.push_back('"'); this->curr++; break; 
                 case '\\': extracted_str.push_back('\\'); this->curr++; break; 
                 case '/': extracted_str.push_back('/'); this->curr++; break; 
@@ -261,9 +366,14 @@ namespace json {
                 case 'r': extracted_str.push_back('\r'); this->curr++; break; 
                 case 't': extracted_str.push_back('\t'); this->curr++; break; 
                 case 'u': this->curr += 4; break; // TODO: unicode :)
-                case '\0': throw std::runtime_error("[json::JSONTokenizer::tokenize_string] Unescaped backslash");
-                default: throw std::runtime_error("[json::JSONTokenizer::tokenize_string] Invalid escape sequence: \\" + char_code_str(next));
+                case '\0':
+                  throw std::runtime_error("[json::JSONTokenizer::tokenize_string]"
+                  "Unescaped backslash");
+                default:
+                  throw std::runtime_error("[json::JSONTokenizer::tokenize_string] "
+                  "Invalid escape sequence: \\" + char_code_str(next));
               }
+
               break;
             }
             case '\r':
@@ -289,8 +399,10 @@ namespace json {
           this->curr += keyword.length();
           return Token(matched_token_type, matched_type);
         }
-        throw std::runtime_error("[consume_match] Tried to match " + std::string(keyword)
-         + " at index" + std::to_string(this->curr) + ". No match. ");
+
+        throw std::runtime_error("[consume_match] Tried to match " +
+          std::string(keyword) + " at index" + std::to_string(this->curr) +
+          ". No match. ");
       }
 
       std::string_view src;
@@ -346,43 +458,57 @@ namespace json {
     }, literal);
   }
 
-  std::string serialize(JSON json, int depth) {
+  std::string serialize(const JSON& json, unsigned int depth) {
     if (depth > JSON_MAX_SERIALIZE_DEPTH) {
       throw std::runtime_error("[json::serialize] Exceeded max serialization "
       "depth of " + std::to_string(JSON_MAX_SERIALIZE_DEPTH));
     }
 
-    std::stringstream output;
-    std::string tab = "  ";
-
-    std::visit(overloaded { 
-      [&](const JSONLiteral& literal) { output << json_literal_serialize(literal);  },
+    return std::visit(overloaded { 
+      [&](const JSONLiteral& literal) { return json_literal_serialize(literal);  },
       [&](const JSONObject& object) {
-        output << "{\n";
-        bool first = true;
+        if (object.size() == 0) return std::string("{}\n");
+        std::string tab(depth * 2, ' ');
+        std::string output = "{\n";
 
-        for (const std::pair<const std::string, json::JSON>& entry : object) {
-          if (!first) output << ", \n";
-          first = false;
-          output << tab << "  " << entry.first << ": " << serialize(entry.second, depth + 1);
+        JSONObject::size_type i = 0;
+        for (const std::pair<const std::string, JSON>& entry : object) {
+          output += tab;
+          output += "  ";
+          output += "\"" + entry.first + "\""; 
+          output += ": "; 
+          output += serialize(entry.second, depth + 1);
+          if (i != object.size() - 1) output += ", ";
+          output += "\n";
+
+          i++;
         }
 
-        output << "\n" << tab << "}\n";
+        output += tab;
+        output += "}";
+        return output;
       },
       [&](const JSONArray& arr) {
-        output << "[\n";
-        for (std::size_t i = 0; i < arr.size(); i++) {
-          output << tab << serialize(arr[i], depth + 1) << (i != arr.size() - 1 ? ", \n" : "\n");
+        if (arr.size() == 0) return std::string("[]\n");
+        std::string tab(depth * 2, ' ');
+        std::string output = "[\n";
+
+        for (JSONArray::size_type i = 0; i < arr.size(); i++) {
+          output += tab;
+          output += "  ";
+          output += serialize(arr[i], depth + 1);
+          if (i != arr.size() - 1) output += ", ";
+          output += "\n";
         }
-        output << tab << "]\n";
+        output += tab;
+        output += "]";
+
+        return output;
       }
     }, json.value);
-
-
-    return output.str();
   }
 
-  std::string serialize(JSON json) {
+  std::string serialize(const JSON& json) {
     return serialize(json, 0);
   }
 
@@ -394,10 +520,10 @@ namespace json {
       JSON parse(std::string_view str) {
         this->tokens = tokenize(str);
 
-        for (std::vector<Token>::size_type i = 0; i < this->tokens.size(); i++) {
-          std::cout << (i + 1) << " of " << this->tokens.size() << ": "
-            << json_token_str(this->tokens[i]) << std::endl;
-        }
+        // for (std::vector<Token>::size_type i = 0; i < this->tokens.size(); i++) {
+        //   std::cout << (i + 1) << " of " << this->tokens.size() << ": "
+        //     << json_token_str(this->tokens[i]) << std::endl;
+        // }
 
         this->curr = 0;
         return this->parse_value();
@@ -463,13 +589,21 @@ namespace json {
 
       void parse_object_pair(JSON& obj) {
         // Grammar: STRING ":" value
+        if (!std::holds_alternative<std::string>(this->tokens[this->curr].val))
+          throw std::runtime_error("[parse_object_pair] found object key of type " +
+          std::string(json_token_type_str(this->tokens[this->curr].type)) +
+          "( + " + json_literal_serialize(this->tokens[this->curr].val) + " ). "
+          "String expected.");
+
         std::string key = std::get<std::string>(this->tokens[this->curr].val);
         this->curr++;
 
         if (this->tokens[this->curr].type != TokenType::COLON)
-          throw std::runtime_error("[parse_object_pair] expected colon");
-        this->curr++;
+          throw std::runtime_error("[parse_object_pair] expected colon, got " +
+            std::string(json_token_type_str(this->tokens[this->curr].type)) + 
+            ". ( " + json_token_str(this->tokens[this->curr]) + " )");
 
+        this->curr++;
         JSON value = this->parse_value();
         JSONObject& objval = std::get<JSONObject>(obj.value);
         objval.emplace(key, value);

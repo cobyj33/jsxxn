@@ -23,9 +23,19 @@ void parse_json_file(std::string path) {
   
   try {
     json::JSON parsed = json::parse(json_file);
-    std::cout << "Success in parsing " << path << std::endl;
+    std::cout << "Success in parsing: " << path << std::endl;
 
-    std::cout << "Reserialized version: " << json::serialize(parsed) << std::endl;
+    std::string serialized = json::serialize(parsed);
+    std::cout << "Reserialized version: " << std::endl;
+    std::cout << serialized << std::endl;
+
+    try {
+      json::JSON reparsed = json::parse(serialized);
+      std::cout << "Succeeded in reparsing serialized input." << std::endl;
+    } catch (const std::runtime_error& err) {
+      std::cout << "Failed to reparse serialized input." << std::endl;
+    }
+    
   } catch (const std::runtime_error& err) {
     std::cerr << "Failed to parse " << path << ": " << err.what() << std::endl;
   }

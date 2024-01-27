@@ -1,0 +1,25 @@
+[
+  {
+    "object": {
+      "deep": {
+        "nesting": {
+          "test": {
+            "success": "hopefully"
+          } 
+        }
+      }
+    }
+  },
+  [
+    "array",
+    [
+      "deep",
+      [
+        "nesting",
+        [
+          "test"
+        ]
+      ]
+    ]
+  ]
+]
