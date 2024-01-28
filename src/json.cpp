@@ -746,69 +746,36 @@ namespace json {
     }, a, b);
   }
 
-  JSON::JSON() {
-    this->value = nullptr;
-  }
+  JSON::JSON() { this->value = nullptr; }
+  JSON::JSON(nullptr_t value) { this->value = value; }
+  JSON::JSON(bool value) { this->value = value; }
+  JSON::JSON(std::int8_t value) { this->value = static_cast<std::int64_t>(value); }
+  JSON::JSON(std::int16_t value) { this->value = static_cast<std::int64_t>(value); }
+  JSON::JSON(std::int32_t value) { this->value = static_cast<std::int64_t>(value); }
+  JSON::JSON(std::int64_t value) { this->value = value; }
 
-  JSON::JSON(nullptr_t value) {
-    this->value = value;
-  }
-
-  JSON::JSON(bool value) {
-    this->value = value;
-  }
-
-  JSON::JSON(std::int64_t value) {
-    this->value = value;
-  }
-
-  JSON::JSON(double value) {
-    this->value = value;
-  }
+  JSON::JSON(double value) { this->value = value; }
   
-  JSON::JSON(std::string value) {
-    this->value = value;
-  }
 
-  JSON::JSON(const char* value) {
-    this->value = std::string(value);
-  }
+  JSON::JSON(const char* value) { this->value = std::string(value); }
+  JSON::JSON(std::string_view value) { this->value = std::string(value); }
+  JSON::JSON(std::string value) { this->value = value; }
+  JSON::JSON(const std::string& value) { this->value = value; }
+  JSON::JSON(std::string&& value) { this->value = value; }
 
-  JSON::JSON(const std::string& value) {
-    this->value = value;
-  }
-
-  JSON::JSON(std::string&& value) {
-    this->value = value;
-  }
-
-  JSON::JSON(JSONNumber value) {
-    this->value = value;
-  }
+  JSON::JSON(JSONNumber value) { this->value = value; }
   
-  JSON::JSON(JSONLiteral value) {
-    this->value = value;
-  }
+  JSON::JSON(JSONLiteral value) { this->value = value; }
   
-  JSON::JSON(const JSON& value) {
-    this->value = value.value;
-  }
+  JSON::JSON(const JSON& value) { this->value = value.value; }
 
-  JSON::JSON(const JSONArray& value) {
-    this->value = value;
-  }
+  JSON::JSON(const JSONArray& value) { this->value = value; }
 
-  JSON::JSON(JSONArray&& value) {
-    this->value = value;
-  }
+  JSON::JSON(JSONArray&& value) { this->value = value; }
 
-  JSON::JSON(const JSONObject& value) {
-    this->value = value;
-  }
+  JSON::JSON(const JSONObject& value) { this->value = value; }
 
-  JSON::JSON(JSONObject&& value) {
-    this->value = value;
-  }
+  JSON::JSON(JSONObject&& value) { this->value = value; }
 
   JSON::JSON(JSONValueType type) {
     switch (type) {
@@ -827,6 +794,11 @@ namespace json {
 
   bool JSON::equals_deep(const JSON& other) {
     return json_value_equals_deep(this->value, other.value);
+  }
+
+  JSON& JSON::operator=(const JSON& other) {
+    this->value = other.value;
+    return *this;
   }
 
   JSON::operator bool() {
@@ -887,9 +859,13 @@ namespace json {
         std::string key_str = std::string(key);
         return map->at(key_str);
       }
-      throw std::runtime_error("[JSON::operator[]] key not found"); 
+      throw std::runtime_error("[JSON::operator[]] key " + std::string(key) + " not found"); 
     }
     throw std::runtime_error("[JSON::operator[]] searching key on non-object type");
+  }
+
+  JSON JSON::operator[](const char* key) {
+    return (*this)[std::string_view(key)];
   }
   
   JSON JSON::operator[](std::size_t idx) {

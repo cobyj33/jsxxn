@@ -16,6 +16,8 @@ unreasonable data, and it does provide the correct result for all tests in the
 test/data directory, not every edge case has been fuzzed or tested to a 100%
 confidence degree as of yet.
 
+Example usage can be found in the examples/ directory
+
 ## Resources
 
 ### Resources - Standards, Grammars, and Descriptions

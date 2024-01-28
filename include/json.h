@@ -7,6 +7,7 @@
 #include <variant>
 #include <map>
 #include <cstddef>
+#include <utility>
 
 // [ { "name": 3 }, { "age": 4 }, [ 3, 5, 8 ], "String" ]
 
@@ -55,17 +56,19 @@ namespace json {
 
       JSON(bool value);
 
+      JSON(std::int8_t value);
+      JSON(std::int16_t value);
+      JSON(std::int32_t value);
       JSON(std::int64_t value);
       JSON(double value);
       
       JSON(const char* value);
-      
+      JSON(std::string_view value);
       JSON(std::string value);
       JSON(const std::string& value);
       JSON(std::string&& value);
 
       JSON(JSONNumber value);
-      
       JSON(JSONLiteral value);
       
       JSON(const JSONArray& value);
@@ -80,6 +83,8 @@ namespace json {
       
       JSONValueType type();
 
+      JSON& operator=(const JSON& other);
+
       // Literal Methods
       operator bool();
       operator std::string();
@@ -91,12 +96,13 @@ namespace json {
       bool empty() const noexcept;
       void push_back(JSON&& json);
       void push_back(const JSON& json);
+      JSON operator[](std::size_t idx);
 
       // Object Methods
       bool containsKey(std::string_view key);
       bool containsValue(std::string_view key);
       JSON operator[](std::string_view key);
-      JSON operator[](std::size_t idx);
+      JSON operator[](const char* key);
   };
 };
 
