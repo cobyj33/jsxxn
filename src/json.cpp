@@ -983,8 +983,8 @@ namespace json {
   }
 
   std::string json_token_str(Token token) {
-    return "Token: { TokenType type: \"" + json_token_type_str(token.type) + "\""
-      ", value: " + json_literal_serialize(token.val) + " }";
+    return "Token: { TokenType type: \"" + json_token_type_str(token.type) +
+    "\", value: " + json_literal_serialize(token.val) + " }";
   }
 
   char stridx(std::string_view str, std::size_t val) {
@@ -1021,8 +1021,6 @@ namespace json {
       res += static_cast<char>(0b10'000000 + ((val & 0b0000'0000'0011'1111)));
       return res;
     }
-
-    // val <= 0xFFFF
   }
 
   std::uint16_t xdigit_as_u16(char ch) {

@@ -5,16 +5,16 @@ Library and based on the [RFC 8259](https://www.rfc-editor.org/rfc/rfc8259)
 JSON standard.
 
 > Note that there are much more tested C++ JSON parsers out there!
-> This one was created mostly as a challenge and a learning experience!
-> [nlohmann/json](https://github.com/nlohmann/json)
-> [nlohmann/json](https://github.com/nlohmann/json)
-> [Tencent/rapidjson](https://github.com/Tencent/rapidjson/)
-> [open-source-parsers/jsoncpp](https://github.com/open-source-parsers/jsoncpp)
+> * [nlohmann/json](https://github.com/nlohmann/json)
+> * [Tencent/rapidjson](https://github.com/Tencent/rapidjson/)
+> * [open-source-parsers/jsoncpp](https://github.com/open-source-parsers/jsoncpp)
+> 
+> cpp-json one was created mostly as a challenge and a learning experience!
 
-While cpp-json does work with reasonable data and ostensibly with unreasonable
-data, and it does provide the correct result for all tests in the test/data
-directory, not every edge case has been fuzzed or tested to a 100% confidence
-degree as of yet.
+While cpp-json does work with reasonable data and it ostensibly works with
+unreasonable data, and it does provide the correct result for all tests in the
+test/data directory, not every edge case has been fuzzed or tested to a 100%
+confidence degree as of yet.
 
 ## Resources
 
