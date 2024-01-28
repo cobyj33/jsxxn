@@ -369,7 +369,11 @@ namespace json {
       void consume_comments() {
         switch (this->curr + 1 < this->src.length() ? this->src[this->curr + 1] : '\0') {
           case '/': for (; this->curr < this->src.length() && this->src[this->curr] != '\n'; this->curr++); break;
-          case '*': for (; this->curr + 1 < this->src.length() && !(this->src[this->curr] == '*' && this->src[this->curr+1] == '/'); this->curr++); break;
+          case '*': for (; this->curr + 1 < this->src.length(); this->curr++) {
+            if (this->src[this->curr] == '*' && this->src[this->curr+1] == '/') {
+              this->curr += 2; break;
+            }
+          } break;
           default: throw std::runtime_error("[json::JSONTokenizer::consume_comments] Unhandled slash");
         }
       }
@@ -673,11 +677,19 @@ namespace json {
   }
 
   bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b) {
+    constexpr double DOUBLE_EPSILON = 1E-6;
+
     return std::visit(overloaded {
       [&](const std::int64_t& a1, const std::int64_t& b1) { return a1 == b1; },
-      [&](const std::int64_t& a1, const double& b1) { return a1 == b1; },
-      [&](const double& a1, const std::int64_t& b1) { return a1 == b1; },
-      [&](const double& a1, const double& b1) { return a1 == b1; },
+      [&](const std::int64_t& a1, const double& b1) {
+        return std::abs(static_cast<double>(a1) - b1) < DOUBLE_EPSILON;
+      },
+      [&](const double& a1, const std::int64_t& b1) {
+        return std::abs(a1 - static_cast<double>(b1)) < DOUBLE_EPSILON;
+      },
+      [&](const double& a1, const double& b1) {
+        return std::abs(a1 - b1) < DOUBLE_EPSILON;
+      }
     }, a, b); 
   }
 
@@ -811,6 +823,10 @@ namespace json {
 
   JSONValueType JSON::type() {
     return json_value_get_type(this->value);
+  }
+
+  bool JSON::equals_deep(const JSON& other) {
+    return json_value_equals_deep(this->value, other.value);
   }
 
   JSON::operator bool() {

@@ -1,0 +1,14 @@
+// nothing{{}}
+// more []comments
+
+/*
+*\/
+* /
+*/
+{
+  // empty array with a comment!
+  /*
+    "string": null
+  */
+}/**///
+//
