@@ -22,8 +22,8 @@
  * A final count of all passed and failed tests will be produced at the
  * end of stdout
  * 
- * It would be useful to add a redirection of stdout into
- * a file such as "2>&1 > testing_file.txt" in order to look over the testing
+ * It would be useful to add a redirection of stdout and stderr into
+ * a file such as "> testing_file.txt 2>&1" in order to look over the testing
  * data at once
  * 
  * Note that this utility can be used with any json file, and is not restricted

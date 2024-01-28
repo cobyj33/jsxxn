@@ -1,8 +1,8 @@
-# json
+# cpp-json
 
 A **hobby** one-source one-header JSON parser for C++ 17 - built with the STL
 Library and based on the [RFC 8259](https://www.rfc-editor.org/rfc/rfc8259)
-JSON standard
+JSON standard.
 
 > Note that there are much more tested JSON parsers out there!
 > [nlohmann/json](https://github.com/nlohmann/json)
@@ -10,14 +10,7 @@ JSON standard
 > [Tencent/rapidjson](https://github.com/Tencent/rapidjson/)
 > [open-source-parsers/jsoncpp](https://github.com/open-source-parsers/jsoncpp)
 
-* [Documentation](#documentation)
-* [Resources](#respurces)
-
-# Documentation
-
-
-
-# Resources
+## Resources
 
 [json.org](https://www.json.org/json-en.html)
 [ECMA 404 JSON Standard](https://ecma-international.org/publications-and-standards/standards/ecma-404/)
