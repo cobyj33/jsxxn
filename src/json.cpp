@@ -421,7 +421,6 @@ namespace json {
           switch (str[i]) {
             case '"': serialized_str.append("\\\""); break;
             case '\\': serialized_str.append("\\\\"); break;
-            case '/': serialized_str.append("\\/"); break;
             case '\b': serialized_str.append("\\b"); break;
             case '\f': serialized_str.append("\\f"); break;
             case '\n': serialized_str.append("\\n"); break;
