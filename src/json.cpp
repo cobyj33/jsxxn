@@ -362,8 +362,6 @@ namespace json {
         }
 
         if (!closed) throw std::runtime_error("Unclosed String");
-
-        this->curr++; // consume ending quote
         return Token(TokenType::STRING, extracted_str);
       }
 
@@ -398,74 +396,94 @@ namespace json {
     return JSONTokenizer().tokenize(str);
   }
 
-  std::string json_number_serialize(JSONNumber number) {
-    return std::visit(overloaded {
-      [&](const std::int64_t& num) { return std::to_string(num); },
-      [&](const double& num) { return std::to_string(num); }
+
+
+  void json_number_serialize(const JSONNumber& number, std::string& output) {
+    std::visit(overloaded {
+      [&](const std::int64_t& num) { output += std::to_string(num); },
+      [&](const double& num) { output += std::to_string(num); }
     }, number);
   }
+  
+  std::string json_number_serialize(JSONNumber number) {
+    std::string output;
+    json_number_serialize(number, output);
+    return output;
+  }
 
-  std::string json_literal_serialize(const JSONLiteral& literal) {
-    return std::visit(overloaded {
-      [&](const JSONNumber& number) { return json_number_serialize(number); },
+  void json_literal_serialize(const JSONLiteral& literal, std::string& output) { 
+    std::visit(overloaded {
+      [&](const JSONNumber& number) { json_number_serialize(number, output); },
       [&](const nullptr_t& nptr) {
         (void)nptr;
-        return std::string("null");
+        output += "null";
       },
       [&](const bool& boolean) {
-        return boolean ? std::string("true") : std::string("false");
+        output += boolean ? "true" : "false";
       },
       [&](const std::string& str) {
-        std::string serialized_str = "\"";
+        output += "\"";
 
         for (std::string::size_type i = 0; i < str.size(); i++) {
           switch (str[i]) {
-            case '"': serialized_str.append("\\\""); break;
-            case '\\': serialized_str.append("\\\\"); break;
-            case '\b': serialized_str.append("\\b"); break;
-            case '\f': serialized_str.append("\\f"); break;
-            case '\n': serialized_str.append("\\n"); break;
-            case '\r': serialized_str.append("\\r"); break;
-            case '\t': serialized_str.append("\\t"); break;
+            case '"': output.append("\\\""); break;
+            case '\\': output.append("\\\\"); break;
+            case '\b': output.append("\\b"); break;
+            case '\f': output.append("\\f"); break;
+            case '\n': output.append("\\n"); break;
+            case '\r': output.append("\\r"); break;
+            case '\t': output.append("\\t"); break;
             default: {
               
               // control characters get turned into unicode escapes
               if (std::iscntrl(str[i])) {
-                serialized_str += "\\u";
-                serialized_str += u16_as_hexstr(str[i]);
+                output += "\\u";
+                output += u16_as_hexstr(str[i]);
               } else { // all other characters can just be unescaped
-                serialized_str.push_back(str[i]);
+                output.push_back(str[i]);
               }
 
             }
           }
         }
 
-        return serialized_str + "\"";
+        output += "\"";
       }
     }, literal);
   }
 
-  std::string serialize(const JSONValue& json, unsigned int depth) {
+  std::string json_literal_serialize(const JSONLiteral& literal) {
+    std::string output;
+    json_literal_serialize(literal, output);
+    return output;
+  }
+
+  void serialize(const JSONValue& json, unsigned int depth, std::string& output) {
     if (depth > JSON_IMPL_MAX_NESTING_DEPTH) {
       throw std::runtime_error("[json::serialize] Exceeded max nesting "
       "depth of " + std::to_string(JSON_IMPL_MAX_NESTING_DEPTH));
     }
 
-    return std::visit(overloaded { 
-      [&](const JSONLiteral& literal) { return json_literal_serialize(literal);  },
+    std::visit(overloaded { 
+      [&](const JSONLiteral& literal) {
+        json_literal_serialize(literal, output);
+      },
       [&](const JSONObject& object) {
-        if (object.size() == 0) return std::string("{}");
+        if (object.size() == 0) {
+          output += "{}";
+          return;
+        }
+
         std::string tab(depth * 2, ' ');
-        std::string output = "{\n";
+        output += "{\n";
 
         JSONObject::size_type i = 0;
         for (const std::pair<const std::string, JSON>& entry : object) {
           output += tab;
           output += "  ";
-          output += json_literal_serialize(entry.first); 
+          json_literal_serialize(entry.first, output); 
           output += ": "; 
-          output += serialize(entry.second.value, depth + 1);
+          serialize(entry.second.value, depth + 1, output);
           if (i != object.size() - 1) output += ", ";
           output += "\n";
 
@@ -474,30 +492,33 @@ namespace json {
 
         output += tab;
         output += "}";
-        return output;
       },
       [&](const JSONArray& arr) {
-        if (arr.size() == 0) return std::string("[]");
+        if (arr.size() == 0) {
+          output += "[]";
+          return;
+        }
+
         std::string tab(depth * 2, ' ');
-        std::string output = "[\n";
+        output += "[\n";
 
         for (JSONArray::size_type i = 0; i < arr.size(); i++) {
           output += tab;
           output += "  ";
-          output += serialize(arr[i].value, depth + 1);
+          serialize(arr[i].value, depth + 1, output);
           if (i != arr.size() - 1) output += ", ";
           output += "\n";
         }
         output += tab;
         output += "]";
-
-        return output;
       }
     }, json);
   }
 
   std::string serialize(const JSONValue& json) {
-    return serialize(json, 0);
+    std::string output;
+    serialize(json, 0, output);
+    return output;
   }
 
   class JSONParser {

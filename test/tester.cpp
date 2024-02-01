@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
         }
         
       } catch (const std::runtime_error& err) {
-        std::cerr << "FAILED to reparse serialized input." << std::endl;
+        std::cerr << "FAILED to reparse serialized input: " << err.what() << std::endl;
         failures.push_back(json_test_err(test, err.what()));
       }
     } catch (const std::runtime_error& err) {
