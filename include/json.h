@@ -34,14 +34,14 @@ namespace json {
   bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b);
 
   bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b);
-  std::string json_literal_serialize(JSONLiteral literal);
+  std::string json_literal_serialize(const JSONLiteral& literal);
   JSONValueType json_literal_get_type(const JSONLiteral& value);
 
   JSONValueType json_value_get_type(const JSONValue& value);
   const char* json_value_type_str(JSONValueType jvt);
   bool json_value_equals_deep(const JSONValue& a, const JSONValue& b);
 
-  std::string serialize(const JSON& json);
+  std::string serialize(const JSONValue& json);
   JSON parse(std::string_view str);
 
   class JSON {
@@ -91,6 +91,8 @@ namespace json {
       operator double();
       operator std::int64_t();
       operator nullptr_t();
+      operator JSONValue();
+      operator JSONValue&();
       
       // Array Methods
       bool empty() const noexcept;

@@ -295,13 +295,12 @@ namespace json {
       Token tokenize_string() {
         this->curr++; // consume quotation
         std::string extracted_str;
+        bool closed = false;
 
-        for (; this->src[this->curr] != '"'; this->curr++) {
-          if (this->curr >= this->src.length())
-            throw std::runtime_error("Unclosed String");
-
+        for (; !closed && this->curr < this->src.length(); this->curr++) {
           char ch = this->src[this->curr];
           switch (ch) {
+            case '"': closed = true; break;
             case '\\': {
               char next = stridx(this->src, this->curr + 1);
               switch (stridx(this->src, this->curr + 1)) {
@@ -362,6 +361,8 @@ namespace json {
           }
         }
 
+        if (!closed) throw std::runtime_error("Unclosed String");
+
         this->curr++; // consume ending quote
         return Token(TokenType::STRING, extracted_str);
       }
@@ -404,7 +405,7 @@ namespace json {
     }, number);
   }
 
-  std::string json_literal_serialize(JSONLiteral literal) {
+  std::string json_literal_serialize(const JSONLiteral& literal) {
     return std::visit(overloaded {
       [&](const JSONNumber& number) { return json_number_serialize(number); },
       [&](const nullptr_t& nptr) {
@@ -445,7 +446,7 @@ namespace json {
     }, literal);
   }
 
-  std::string serialize(const JSON& json, unsigned int depth) {
+  std::string serialize(const JSONValue& json, unsigned int depth) {
     if (depth > JSON_IMPL_MAX_NESTING_DEPTH) {
       throw std::runtime_error("[json::serialize] Exceeded max nesting "
       "depth of " + std::to_string(JSON_IMPL_MAX_NESTING_DEPTH));
@@ -464,7 +465,7 @@ namespace json {
           output += "  ";
           output += json_literal_serialize(entry.first); 
           output += ": "; 
-          output += serialize(entry.second, depth + 1);
+          output += serialize(entry.second.value, depth + 1);
           if (i != object.size() - 1) output += ", ";
           output += "\n";
 
@@ -483,7 +484,7 @@ namespace json {
         for (JSONArray::size_type i = 0; i < arr.size(); i++) {
           output += tab;
           output += "  ";
-          output += serialize(arr[i], depth + 1);
+          output += serialize(arr[i].value, depth + 1);
           if (i != arr.size() - 1) output += ", ";
           output += "\n";
         }
@@ -492,10 +493,10 @@ namespace json {
 
         return output;
       }
-    }, json.value);
+    }, json);
   }
 
-  std::string serialize(const JSON& json) {
+  std::string serialize(const JSONValue& json) {
     return serialize(json, 0);
   }
 
@@ -818,6 +819,9 @@ namespace json {
     }
     throw std::runtime_error("[JSON::operator std::string()]");
   }
+
+  JSON::operator JSONValue() { return this->value; }
+  JSON::operator JSONValue&() { return this->value; }
   
   JSON::operator double() {
     if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
