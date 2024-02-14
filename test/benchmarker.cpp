@@ -42,6 +42,43 @@ std::string chrono_nanoseconds_str(std::chrono::nanoseconds ns) {
   return std::to_string(static_cast<double>(ns.count()) / 1000000) + "ms";
 }
 
+constexpr std::chrono::nanoseconds BENCHMARK_ERR_TIME = std::chrono::nanoseconds(-1);
+
+struct benchmark_data {
+  std::chrono::nanoseconds par_t = BENCHMARK_ERR_TIME;
+  std::chrono::nanoseconds ser_t = BENCHMARK_ERR_TIME;
+  std::chrono::nanoseconds repar_t = BENCHMARK_ERR_TIME;
+  std::chrono::nanoseconds deq_t = BENCHMARK_ERR_TIME;
+};
+
+
+benchmark_data benchmark(const std::string& json_str) {
+  benchmark_data data;
+
+  try {
+    std::chrono::time_point before_parse = std::chrono::steady_clock::now();
+    json::JSON parsed = json::parse(json_str);
+    data.par_t = std::chrono::steady_clock::now() - before_parse;
+    
+    std::chrono::time_point before_serialize = std::chrono::steady_clock::now();
+    std::string serialized = json::serialize(parsed);
+    data.ser_t = std::chrono::steady_clock::now() - before_serialize;
+
+    try {
+      std::chrono::time_point before_reparse = std::chrono::steady_clock::now();
+      json::JSON reparsed = json::parse(serialized);
+      data.repar_t = std::chrono::steady_clock::now() - before_reparse;
+
+      std::chrono::time_point before_deep_equals = std::chrono::steady_clock::now();
+      if (reparsed.equals_deep(parsed)) {
+        data.deq_t = std::chrono::steady_clock::now() - before_deep_equals;
+      }
+    } catch (const std::runtime_error& err) { return data; }
+  } catch (const std::runtime_error& err) { return data; }
+
+  return data;
+}
+
 int main(int argc, char** argv) {
   if (argc < 2) {
     std::cerr << "Enter at least one file or json string to open and benchmark" << std::endl;
@@ -60,42 +97,14 @@ int main(int argc, char** argv) {
       json_str = std::string(argv[i]);
     }
 
-    std::cout << "Parsing " << id << "..." << std::endl;
+    benchmark_data data = benchmark(json_str);
+
+    std::cout << "Benchmarking " << id << "..." << std::endl;
     std::cout << "--------------------" << std::endl;
-
-    try {  
-      std::chrono::time_point before_parse = std::chrono::steady_clock::now();
-      json::JSON parsed = json::parse(json_str);
-      std::chrono::time_point after_parse = std::chrono::steady_clock::now();
-      std::cout << "Parsing Time: " << chrono_nanoseconds_str(after_parse - before_parse) << std::endl;
-      
-      std::chrono::time_point before_serialize = std::chrono::steady_clock::now();
-      std::string serialized = json::serialize(parsed);
-      std::chrono::time_point after_serialize = std::chrono::steady_clock::now();
-      std::cout << "Serialization Time: " << chrono_nanoseconds_str(after_serialize - before_serialize) << std::endl;
-
-      try {
-        std::chrono::time_point before_reparse = std::chrono::steady_clock::now();
-        json::JSON reparsed = json::parse(serialized);
-        std::chrono::time_point after_reparse = std::chrono::steady_clock::now();
-        std::cout << "Reparse Time: " << chrono_nanoseconds_str(after_reparse - before_reparse) << std::endl;
-
-        std::chrono::time_point before_deep_equals = std::chrono::steady_clock::now();
-        if (reparsed.equals_deep(parsed)) {
-          std::chrono::time_point after_deep_equals = std::chrono::steady_clock::now();
-          std::cout << "Deep Equality Time: " << chrono_nanoseconds_str(after_deep_equals - before_deep_equals) << std::endl;
-        } else {
-          std::cerr << "FAILED: Reparsed input not detected as equal "
-          "to parsed input" << std::endl;
-        }
-        
-      } catch (const std::runtime_error& err) {
-        std::cerr << "FAILED to reparse serialized input: " << err.what() << std::endl;
-      }
-    } catch (const std::runtime_error& err) {
-      std::cerr << "FAILED to parse " << id << ": " << err.what() << std::endl;
-    }
-
+    std::cout << "Parsing Time: " << chrono_nanoseconds_str(data.par_t) << std::endl;
+    std::cout << "Serialization Time: " << chrono_nanoseconds_str(data.ser_t) << std::endl;
+    std::cout << "Reparse Time: " << chrono_nanoseconds_str(data.repar_t) << std::endl;
+    std::cout << "Deep Equality Time: " << chrono_nanoseconds_str(data.deq_t) << std::endl;
     std::cout << "--------------------" << std::endl;
     std::cout << std::endl;
   }
