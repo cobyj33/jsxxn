@@ -35,11 +35,15 @@ namespace json {
 
   bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b);
   std::string json_literal_serialize(const JSONLiteral& literal);
-  JSONValueType json_literal_get_type(const JSONLiteral& value);
 
+  JSONValueType json_literal_get_type(const JSONLiteral& value);
   JSONValueType json_value_get_type(const JSONValue& value);
+  
   const char* json_value_type_str(JSONValueType jvt);
   bool json_value_equals_deep(const JSONValue& a, const JSONValue& b);
+
+  std::string json_literal_serialize(const JSONLiteral& literal);
+  std::string json_number_serialize(const JSONNumber& number);
 
   std::string serialize(const JSONValue& json);
   JSON parse(std::string_view str);
