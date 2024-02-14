@@ -151,7 +151,7 @@ namespace json {
       arr->push_back(json);
       return;
     }
-    throw std::runtime_error("[JSON::operator[]] pushing on non-array type"); 
+    throw std::runtime_error("[JSON::push_back] pushing on non-array type"); 
   }
 
   void JSON::push_back(const JSON& json) {
@@ -159,7 +159,7 @@ namespace json {
       arr->push_back(json);
       return;
     }
-    throw std::runtime_error("[JSON::operator[]] pushing on non-array type"); 
+    throw std::runtime_error("[JSON::push_back] pushing on non-array type"); 
   }
 
 };
