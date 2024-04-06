@@ -12,7 +12,7 @@
 namespace json {
 
   JSON::JSON() { this->value = nullptr; }
-  JSON::JSON(nullptr_t value) { this->value = value; }
+  JSON::JSON(std::nullptr_t value) { this->value = value; }
   JSON::JSON(bool value) { this->value = value; }
   JSON::JSON(std::int8_t value) { this->value = static_cast<std::int64_t>(value); }
   JSON::JSON(std::int16_t value) { this->value = static_cast<std::int64_t>(value); }
@@ -112,13 +112,13 @@ namespace json {
     throw std::runtime_error("[JSON::operator std::int64_t()]");
   }
 
-  JSON::operator nullptr_t() {
+  JSON::operator std::nullptr_t() {
     if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
-      if (std::holds_alternative<nullptr_t>(*literal)) {
+      if (std::holds_alternative<std::nullptr_t>(*literal)) {
         return nullptr;
       }
     }
-    throw std::runtime_error("[JSON::operator nullptr_t()]");
+    throw std::runtime_error("[JSON::operator std::nullptr_t()]");
   }
 
   JSON JSON::operator[](std::string_view key) {

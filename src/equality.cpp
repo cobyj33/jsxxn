@@ -60,7 +60,7 @@ namespace json {
       [&](const JSONNumber& a1, const JSONNumber& b1) {
         return json_number_equals_deep(a1, b1);  
       },
-      [&](const nullptr_t& a, const nullptr_t& b) {
+      [&](const std::nullptr_t& a, const std::nullptr_t& b) {
         (void)a; (void)b;
         return true;
       },

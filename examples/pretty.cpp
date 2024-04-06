@@ -12,22 +12,28 @@ int main(int argc, char** argv) {
     std::cerr << "Enter a file or JSON String to pretty print" << std::endl;
     return 1;
   }
-  
-  std::string json_str;
-  try {
-    json_str = read_file_to_string(argv[1]);
-  } catch (const std::runtime_error& err) {
-    json_str = std::string(argv[1]);
+
+  int anysuccess = 0;
+
+  for (int i = 1; i < argc; i++) {
+    std::string json_str;
+    try {
+      json_str = read_file_to_string(argv[i]);
+    } catch (const std::runtime_error& err) {
+      json_str = std::string(argv[i]);
+    }
+
+    try {
+      json::JSON parsed = json::parse(json_str);
+      std::cout << json::serialize(parsed) << std::endl;
+      anysuccess = 1;
+    } catch (const std::runtime_error& err) {
+      std::cerr << err.what() << std::endl;
+    }
   }
 
-  try {
-    json::JSON parsed = json::parse(json_str);
-    std::cout << json::serialize(parsed) << std::endl;
-    return 0;
-  } catch (const std::runtime_error& err) {
-    std::cerr << err.what() << std::endl;
-    return 1;
-  }
+  return anysuccess ? EXIT_SUCCESS : EXIT_FAILURE;
+  
 }
 
 std::string read_file_to_string(std::string path) {

@@ -15,7 +15,7 @@ namespace json {
   class JSON;
 
   typedef std::variant<std::int64_t, double> JSONNumber;
-  typedef std::variant<nullptr_t, std::string, JSONNumber, bool> JSONLiteral;
+  typedef std::variant<std::nullptr_t, std::string, JSONNumber, bool> JSONLiteral;
   typedef std::map<std::string, JSON, std::less<>> JSONObject;
   typedef std::vector<JSON> JSONArray;
 
@@ -42,6 +42,7 @@ namespace json {
   const char* json_value_type_str(JSONValueType jvt);
   bool json_value_equals_deep(const JSONValue& a, const JSONValue& b);
 
+  std::string json_string_serialize(std::string_view v);
   std::string json_literal_serialize(const JSONLiteral& literal);
   std::string json_number_serialize(const JSONNumber& number);
 
@@ -56,7 +57,7 @@ namespace json {
 
       JSON(JSONValueType type);
       
-      JSON(nullptr_t value);
+      JSON(std::nullptr_t value);
 
       JSON(bool value);
 
@@ -94,7 +95,7 @@ namespace json {
       operator std::string();
       operator double();
       operator std::int64_t();
-      operator nullptr_t();
+      operator std::nullptr_t();
       operator JSONValue();
       operator JSONValue&();
       

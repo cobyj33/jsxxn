@@ -18,7 +18,7 @@ namespace json {
     return output;
   }
 
-  std::string json_number_serialize(JSONNumber number) {
+  std::string json_number_serialize(const JSONNumber& number) {
     std::string output;
     json_number_serialize(number, output);
     return output;
@@ -37,10 +37,42 @@ namespace json {
     }, number);
   }
 
+  void json_string_serialize(std::string_view str, std::string& output) {
+    output += "\"";
+    for (std::string::size_type i = 0; i < str.size(); i++) {
+      switch (str[i]) {
+        case '"': output.append("\\\""); break;
+        case '\\': output.append("\\\\"); break;
+        case '\b': output.append("\\b"); break;
+        case '\f': output.append("\\f"); break;
+        case '\n': output.append("\\n"); break;
+        case '\r': output.append("\\r"); break;
+        case '\t': output.append("\\t"); break;
+        default: {
+          // control characters get turned into unicode escapes
+          if (std::iscntrl(str[i])) {
+            output += "\\u";
+            output += u16_as_hexstr(str[i]);
+          } else { // all other characters can just be unescaped
+            output.push_back(str[i]);
+          }
+        }
+      }
+    }
+
+    output += "\"";
+  }
+
+  std::string json_string_serialize(std::string_view v) {
+    std::string out;
+    json_string_serialize(v, out);
+    return out;
+  }
+
   void json_literal_serialize(const JSONLiteral& literal, std::string& output) { 
     std::visit(overloaded {
       [&](const JSONNumber& number) { json_number_serialize(number, output); },
-      [&](const nullptr_t& nptr) {
+      [&](const std::nullptr_t& nptr) {
         (void)nptr;
         output += "null";
       },
@@ -48,32 +80,7 @@ namespace json {
         output += boolean ? "true" : "false";
       },
       [&](const std::string& str) {
-        output += "\"";
-
-        for (std::string::size_type i = 0; i < str.size(); i++) {
-          switch (str[i]) {
-            case '"': output.append("\\\""); break;
-            case '\\': output.append("\\\\"); break;
-            case '\b': output.append("\\b"); break;
-            case '\f': output.append("\\f"); break;
-            case '\n': output.append("\\n"); break;
-            case '\r': output.append("\\r"); break;
-            case '\t': output.append("\\t"); break;
-            default: {
-              
-              // control characters get turned into unicode escapes
-              if (std::iscntrl(str[i])) {
-                output += "\\u";
-                output += u16_as_hexstr(str[i]);
-              } else { // all other characters can just be unescaped
-                output.push_back(str[i]);
-              }
-
-            }
-          }
-        }
-
-        output += "\"";
+        json_string_serialize(str, output);
       }
     }, literal);
   }

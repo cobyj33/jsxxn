@@ -1,4 +1,5 @@
 #include "json_impl.h"
+#include "json.h"
 
 #include <string_view>
 #include <string>
@@ -9,7 +10,7 @@
 #include <climits>
 
 namespace json {
-  char stridx(std::string_view str, std::size_t val);
+
   bool exact_match(std::string_view str, std::string_view check, std::size_t start);
   std::uint16_t xdigit_as_u16(char ch);
   std::string u16_as_utf8(std::uint16_t val);
@@ -18,7 +19,8 @@ namespace json {
   struct LexState {
     std::string_view str;
     std::size_t curr;
-    LexState(std::string_view str) : str(str), curr(0) {}
+    const std::size_t size;
+    LexState(std::string_view str) : str(str), curr(0), size(str.length()) {}
   };
 
   Token tokenize_number(LexState& ls);
@@ -26,13 +28,13 @@ namespace json {
   Token tokenize_float(LexState& ls);
   Token tokenize_string(LexState& ls);
   void consume_comments(LexState& ls);
-  Token consume_keyword(LexState& ls, std::string_view keyword, JSONLiteral matched_type, TokenType matched_token_type);
+  Token consume_keyword(LexState& ls, std::string_view keyword, TokenLiteral matched_type, TokenType matched_token_type);
 
   std::vector<Token> tokenize(std::string_view str) {
     std::vector<Token> res;
     LexState ls(str);
 
-    while (ls.str.length() > ls.curr) {
+    while (ls.curr < ls.size) {
       switch (ls.str[ls.curr]) {
         case '{': res.push_back(Token(TokenType::LEFT_BRACE, "{")); ls.curr++; break;
         case '}': res.push_back(Token(TokenType::RIGHT_BRACE, "}")); ls.curr++; break;
@@ -58,10 +60,10 @@ namespace json {
         case '7':
         case '8':
         case '9': res.push_back(tokenize_number(ls)); break;
-        case 't': res.push_back(consume_keyword(ls, "true", JSONLiteral(true), TokenType::TRUE)); break;
-        case 'f': res.push_back(consume_keyword(ls, "false", JSONLiteral(false), TokenType::FALSE)); break;
-        case 'n': res.push_back(consume_keyword(ls, "null", JSONLiteral(nullptr), TokenType::NULLPTR)); break;
-        default: throw std::runtime_error("Unknown unhandled character: '" + char_code_str(ls.str[ls.curr]) + "'");
+        case 't': res.push_back(consume_keyword(ls, "true", TokenLiteral(true), TokenType::TRUE)); break;
+        case 'f': res.push_back(consume_keyword(ls, "false", TokenLiteral(false), TokenType::FALSE)); break;
+        case 'n': res.push_back(consume_keyword(ls, "null", TokenLiteral(nullptr), TokenType::NULLPTR)); break;
+        default: throw std::runtime_error("Unknown unhandled character: '" + char_code_str(ls.str[ls.curr]) + "' at index " + std::to_string(ls.curr) + " (" + str_ar(ls.str, ls.curr, 30) + ")");
       }
     }
 
@@ -92,9 +94,9 @@ namespace json {
       sign = -1;
     }
 
-    for (; ls.curr < ls.str.length() && std::isdigit(ls.str[ls.curr]); ls.curr++) {
+    for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
       std::int64_t digit = (ls.str[ls.curr] - '0');
-      if ((INT64_MAX - digit) / 10 <= num) {
+      if ((INT64_MAX - digit) / 10LL <= num) {
         ls.curr = start;
         return tokenize_float(ls); 
       }
@@ -113,7 +115,7 @@ namespace json {
       if (!std::isdigit(stridx(ls.str, ls.curr)))
         throw std::runtime_error("[tokenize_int] exponential missing integer part");
 
-      for (; ls.curr < ls.str.length() && std::isdigit(ls.str[ls.curr]); ls.curr++) {
+      for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
         exponential = exponential * 10 + (ls.str[ls.curr] - '0');
         if (exponential > MAX_EXPONENTIAL) {
           ls.curr = start;
@@ -145,7 +147,7 @@ namespace json {
     }
 
     // read integer part
-    for (; ls.curr < ls.str.length() && std::isdigit(ls.str[ls.curr]); ls.curr++) {
+    for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
       double digit = (ls.str[ls.curr] - '0');
       if ((DBL_MAX - digit) / 10 <= num) throw std::runtime_error("[tokenize_float] number too large");
       num = num * 10 + digit;
@@ -154,7 +156,7 @@ namespace json {
     if (stridx(ls.str, ls.curr) == '.') { // read fractional part
       ls.curr++; // consume decimal
       double frac_mult = 0.1;
-      for (; ls.curr < ls.str.length() && std::isdigit(ls.str[ls.curr]); ls.curr++) {
+      for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
         num += (ls.str[ls.curr] - '0') * frac_mult;
         frac_mult /= 10;
       }
@@ -175,7 +177,7 @@ namespace json {
       if (!std::isdigit(stridx(ls.str, ls.curr)))
         throw std::runtime_error("[tokenize_float] exponential missing integer part");
 
-      for (; ls.curr < ls.str.length() && std::isdigit(ls.str[ls.curr]); ls.curr++) {
+      for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
         exponential = exponential * 10 + (ls.str[ls.curr] - '0');
         if (exponential > MAX_EXPONENTIAL)
           throw std::runtime_error("[tokenize_float] number too large");
@@ -216,7 +218,7 @@ namespace json {
     if (ls.str[lookahead] == '0' && std::isdigit(stridx(ls.str, lookahead + 1)))
       throw std::runtime_error("[tokenize_number] leading zeros detected"); 
 
-    for (; lookahead < ls.str.length() && std::isdigit(ls.str[lookahead]); lookahead++);
+    for (; lookahead < ls.size && std::isdigit(ls.str[lookahead]); lookahead++);
 
     if (stridx(ls.str, lookahead) == '.') {
       lookahead++;
@@ -252,43 +254,39 @@ namespace json {
 
   Token tokenize_string(LexState& ls) {
     ls.curr++; // consume quotation
-    std::string extracted_str;
+    const std::size_t start = ls.curr;
     bool closed = false;
 
-    for (; !closed && ls.curr < ls.str.length(); ls.curr++) {
+    while (!closed && ls.curr < ls.size) {
       char ch = ls.str[ls.curr];
       switch (ch) {
-        case '"': closed = true; break;
+        case '"': ls.curr++; closed = true; break; // consume final '"'
+        // escape handling should be handed to the parser?
         case '\\': {
           char next = stridx(ls.str, ls.curr + 1);
-          switch (stridx(ls.str, ls.curr + 1)) {
-            case '"': extracted_str.push_back('"'); ls.curr++; break; 
-            case '\\': extracted_str.push_back('\\'); ls.curr++; break; 
-            case '/': extracted_str.push_back('/'); ls.curr++; break; 
-            case 'b': extracted_str.push_back('\b'); ls.curr++; break; 
-            case 'f': extracted_str.push_back('\f'); ls.curr++; break; 
-            case 'n': extracted_str.push_back('\n'); ls.curr++; break; 
-            case 'r': extracted_str.push_back('\r'); ls.curr++; break; 
-            case 't': extracted_str.push_back('\t'); ls.curr++; break; 
+          switch (next) {
+            case '"': 
+            case '\\': 
+            case '/': 
+            case 'b': 
+            case 'f': 
+            case 'n': 
+            case 'r': 
+            case 't': ls.curr += 2; break; 
             case 'u': { // unicode :(
-              ls.curr++; // consume u
-              std::uint16_t hexval = 0;
-              
-              if (ls.curr + 4 >= ls.str.size())
-                throw std::runtime_error("Incomplete unicode hex value");
+              ls.curr += 2; // consume backslash and u
 
-              for (int i = 0; i < 4; i++) {
-                ls.curr++;
-                char xch = ls.str[ls.curr];
-                if (!std::isxdigit((xch)))
-                  throw std::runtime_error("Incomplete unicode hex value");
-                hexval = hexval * 16 + xdigit_as_u16(xch);
+              if (ls.curr + 4 > ls.size)
+                throw std::runtime_error("[json::tokenize_string] "
+                "Incomplete unicode hex value");
+
+              for (std::size_t i = 0; i < 4; i++) {
+                if (!std::isxdigit(ls.str[ls.curr + i]))
+                  throw std::runtime_error("[json::tokenize_string] Incomplete "
+                  "unicode hex value");
               }
-
-
-              extracted_str += u16_as_utf8(hexval);
-
-              // TODO: Implement UTF-8 substitution
+              
+              ls.curr += 4;
             } break;
             case '\0':
               throw std::runtime_error("[json::tokenize_string] "
@@ -297,12 +295,11 @@ namespace json {
               throw std::runtime_error("[json::tokenize_string] "
               "Invalid escape sequence: \\" + char_code_str(next));
           }
-        } break;
+        } break; // case '\\':
         case '\r':
         case '\n': throw std::runtime_error("[json::tokenize_string] Unclosed String");
         default: {
           /**
-           * 
            * "All Unicode characters may be placed within the
            *  quotation marks, except for the characters that MUST be escaped:
            *  quotation mark, reverse solidus, and the control characters (U+0000
@@ -313,20 +310,20 @@ namespace json {
             throw std::runtime_error("[json::tokenize_string] "
             " Unescaped control character inside of string: " +
             char_code_str(ch));
-
-          extracted_str.push_back(ch);
+            
+          ls.curr++;
         }
       }
     }
 
-    if (!closed) throw std::runtime_error("Unclosed String");
-    return Token(TokenType::STRING, extracted_str);
+    if (!closed) throw std::runtime_error("[json::tokenize_string] Unclosed String");
+    return Token(TokenType::STRING, ls.str.substr(start, ls.curr - start - 1));
   }
 
   void consume_comments(LexState& ls) {
-    switch (ls.curr + 1 < ls.str.length() ? ls.str[ls.curr + 1] : '\0') {
-      case '/': for (; ls.curr < ls.str.length() && ls.str[ls.curr] != '\n'; ls.curr++); break;
-      case '*': for (; ls.curr + 1 < ls.str.length(); ls.curr++) {
+    switch (ls.curr + 1 < ls.size ? ls.str[ls.curr + 1] : '\0') {
+      case '/': for (; ls.curr < ls.size && ls.str[ls.curr] != '\n'; ls.curr++); break;
+      case '*': for (; ls.curr + 1 < ls.size; ls.curr++) {
         if (ls.str[ls.curr] == '*' && ls.str[ls.curr+1] == '/') {
           ls.curr += 2; break;
         }
@@ -335,7 +332,7 @@ namespace json {
     }
   }
 
-  Token consume_keyword(LexState& ls, std::string_view keyword, JSONLiteral matched_type, TokenType matched_token_type) {
+  Token consume_keyword(LexState& ls, std::string_view keyword, TokenLiteral matched_type, TokenType matched_token_type) {
     if (exact_match(ls.str, keyword, ls.curr)) {
       ls.curr += keyword.length();
       return Token(matched_token_type, matched_type);
@@ -346,10 +343,6 @@ namespace json {
       ". No match. ");
   }
 
-  char stridx(std::string_view str, std::size_t val) {
-    return val < str.size() ? str[val] : '\0';
-  }
-
   bool exact_match(std::string_view str, std::string_view check, std::size_t start) {
     if (str.length() - start < check.length()) return false;
 
@@ -358,28 +351,9 @@ namespace json {
     return i == check.length();
   }
 
-  std::uint16_t xdigit_as_u16(char ch) {
-    return (ch >= '0' && ch <= '9') * static_cast<std::uint16_t>(ch - '0') +
-      (ch >= 'A' && ch <= 'F') * (static_cast<std::uint16_t>(ch - 'A' + 10)) +
-      (ch >= 'a' && ch <= 'f') * (static_cast<std::uint16_t>(ch - 'a' + 10));
-  }
+  
 
-  std::string u16_as_utf8(std::uint16_t val) {
-    std::string res;
-    if (val < 0x0080) { // ascii
-      res += static_cast<char>(val);
-      return res;
-    } else if (val < 0x0800) {
-      res += static_cast<char>(0b110'00000 + ((val & 0b0000'0111'1100'0000) >> 6));
-      res += static_cast<char>(0b10'000000 + (val & 0b0000'0000'0011'1111));
-      return res;
-    } else { // val <= 0xFFFF
-      res += static_cast<char>(0b1110'0000 + ((val & 0b1111'0000'0000'0000) >> 12));
-      res += static_cast<char>(0b10'000000 + ((val & 0b0000'1111'1100'0000) >> 6));
-      res += static_cast<char>(0b10'000000 + ((val & 0b0000'0000'0011'1111)));
-      return res;
-    }
-  }
+  
 
   /* Used mainly for reporting char codes in errors which may have control characters */
   std::string char_code_str(char ch) {
