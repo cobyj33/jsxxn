@@ -11,6 +11,21 @@ if (MSVC)
   set(JSON_COMPILE_OPTIONS /std:c++17 /W4 /WX)
 endif()
 
+OPTION(JSON_ENABLE_GPROF "Set CMAKE_BUILD_TYPE to \"Debug\" and add -pg to compiler flags (Default OFF)" OFF)
+
+if(JSON_ENABLE_GPROF AND (CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
+  message("Enabling gprof flags...")
+
+  if (NOT (CMAKE_BUILD_TYPE STREQUAL "Debug"))
+    message("Enabling gprof flags: Setting CMAKE_BUILD_TYPE to Debug")
+    set(CMAKE_BUILD_TYPE Debug)
+  endif()
+
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -pg)
+  set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -pg)
+  set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} -pg)
+endif()
+
 set(JSON_EXAMPLES_DIRECTORY ${CMAKE_SOURCE_DIR}/examples)
 set(JSON_SRC_DIRECTORY ${CMAKE_SOURCE_DIR}/src)
 set(JSON_INCLUDE_DIRECTORY ${JSON_SRC_DIRECTORY} ${CMAKE_SOURCE_DIR}/include)
