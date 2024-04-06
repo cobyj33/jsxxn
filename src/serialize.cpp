@@ -19,9 +19,10 @@ namespace json {
   }
 
   std::string json_number_serialize(const JSONNumber& number) {
-    std::string output;
-    json_number_serialize(number, output);
-    return output;
+    return std::visit(overloaded {
+      [](const std::int64_t& num) { return std::to_string(num); },
+      [](const double& num) { return std::to_string(num); }
+    }, number);
   }
 
   std::string json_literal_serialize(const JSONLiteral& literal) {

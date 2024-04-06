@@ -31,9 +31,11 @@ namespace json {
     NULLPTR
   };
 
-  bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b);
+  // bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b);
+  inline bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b) { return a == b; };
 
-  bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b);
+  // bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b);
+  inline bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b) { return a == b; };
   std::string json_literal_serialize(const JSONLiteral& literal);
 
   JSONValueType json_literal_get_type(const JSONLiteral& value);
@@ -69,12 +71,12 @@ namespace json {
       
       JSON(const char* value);
       JSON(std::string_view value);
-      JSON(std::string value);
       JSON(const std::string& value);
       JSON(std::string&& value);
 
       JSON(JSONNumber value);
-      JSON(JSONLiteral value);
+      JSON(const JSONLiteral& value);
+      JSON(JSONLiteral&& value);
       
       JSON(const JSONArray& value);
       JSON(JSONArray&& value);

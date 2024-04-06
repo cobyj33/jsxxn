@@ -3,6 +3,7 @@
 
 #include <string_view>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <stdexcept>
 #include <cstddef>
@@ -63,7 +64,13 @@ namespace json {
         case 't': res.push_back(consume_keyword(ls, "true", TokenLiteral(true), TokenType::TRUE)); break;
         case 'f': res.push_back(consume_keyword(ls, "false", TokenLiteral(false), TokenType::FALSE)); break;
         case 'n': res.push_back(consume_keyword(ls, "null", TokenLiteral(nullptr), TokenType::NULLPTR)); break;
-        default: throw std::runtime_error("Unknown unhandled character: '" + char_code_str(ls.str[ls.curr]) + "' at index " + std::to_string(ls.curr) + " (" + str_ar(ls.str, ls.curr, 30) + ")");
+        default: {
+          std::stringstream errmsg;
+          errmsg << "Unknown unhandled character: '" << char_code_str(ls.str[ls.curr])
+          << "' at index " << ls.curr << " (" << str_bef(ls.str, ls.curr, 15) <<
+          "->" << ls.str[ls.curr] << "<-" << str_af(ls.str, ls.curr, 15) << ")"; 
+          throw std::runtime_error(errmsg.str()); 
+        }
       }
     }
 
@@ -94,7 +101,7 @@ namespace json {
       sign = -1;
     }
 
-    for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
+    for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
       std::int64_t digit = (ls.str[ls.curr] - '0');
       if ((INT64_MAX - digit) / 10LL <= num) {
         ls.curr = start;
@@ -112,10 +119,10 @@ namespace json {
 
       if (stridx(ls.str, ls.curr) == '+') ls.curr++;
 
-      if (!std::isdigit(stridx(ls.str, ls.curr)))
+      if (!isdigit(stridx(ls.str, ls.curr)))
         throw std::runtime_error("[tokenize_int] exponential missing integer part");
 
-      for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
+      for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
         exponential = exponential * 10 + (ls.str[ls.curr] - '0');
         if (exponential > MAX_EXPONENTIAL) {
           ls.curr = start;
@@ -147,7 +154,7 @@ namespace json {
     }
 
     // read integer part
-    for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
+    for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
       double digit = (ls.str[ls.curr] - '0');
       if ((DBL_MAX - digit) / 10 <= num) throw std::runtime_error("[tokenize_float] number too large");
       num = num * 10 + digit;
@@ -156,7 +163,7 @@ namespace json {
     if (stridx(ls.str, ls.curr) == '.') { // read fractional part
       ls.curr++; // consume decimal
       double frac_mult = 0.1;
-      for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
+      for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
         num += (ls.str[ls.curr] - '0') * frac_mult;
         frac_mult /= 10;
       }
@@ -174,10 +181,10 @@ namespace json {
         case '+': ls.curr++; minus = false; break;
       }
 
-      if (!std::isdigit(stridx(ls.str, ls.curr)))
+      if (!isdigit(stridx(ls.str, ls.curr)))
         throw std::runtime_error("[tokenize_float] exponential missing integer part");
 
-      for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
+      for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
         exponential = exponential * 10 + (ls.str[ls.curr] - '0');
         if (exponential > MAX_EXPONENTIAL)
           throw std::runtime_error("[tokenize_float] number too large");
@@ -212,17 +219,17 @@ namespace json {
     if ((stridx(ls.str, lookahead)) == '.')
       throw std::runtime_error("[tokenize_number] decimal with no integer part");
 
-    if (!std::isdigit(stridx(ls.str, lookahead)))
+    if (!isdigit(stridx(ls.str, lookahead)))
       throw std::runtime_error("[tokenize_number] minus with no integer part");
 
-    if (ls.str[lookahead] == '0' && std::isdigit(stridx(ls.str, lookahead + 1)))
+    if (ls.str[lookahead] == '0' && isdigit(stridx(ls.str, lookahead + 1)))
       throw std::runtime_error("[tokenize_number] leading zeros detected"); 
 
-    for (; lookahead < ls.size && std::isdigit(ls.str[lookahead]); lookahead++);
+    for (; lookahead < ls.size && isdigit(ls.str[lookahead]); lookahead++);
 
     if (stridx(ls.str, lookahead) == '.') {
       lookahead++;
-      if (!std::isdigit(stridx(ls.str, lookahead)))
+      if (!isdigit(stridx(ls.str, lookahead)))
         throw std::runtime_error("[tokenize_number] trailing decimal point");
       return tokenize_float(ls);
     }

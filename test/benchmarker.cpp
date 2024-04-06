@@ -1,5 +1,6 @@
 
 #include "json.h"
+#include "json_impl.h"
 
 #include <iostream>
 #include <fstream>
@@ -38,40 +39,50 @@
 
 std::string read_file_to_string(std::string path);
 
-std::string chrono_nanoseconds_str(std::chrono::nanoseconds ns) {
-  return std::to_string(static_cast<double>(ns.count()) / 1000000) + "ms";
-}
 
 constexpr std::chrono::nanoseconds BENCHMARK_ERR_TIME = std::chrono::nanoseconds(-1);
 
+std::string ns_str(std::chrono::nanoseconds ns) {
+  return ns == BENCHMARK_ERR_TIME ? "DNF" : (std::to_string(static_cast<double>(ns.count()) / 1E6) + "ms");
+}
+
 struct benchmark_data {
+  std::chrono::nanoseconds tok_t = BENCHMARK_ERR_TIME;
   std::chrono::nanoseconds par_t = BENCHMARK_ERR_TIME;
   std::chrono::nanoseconds ser_t = BENCHMARK_ERR_TIME;
   std::chrono::nanoseconds repar_t = BENCHMARK_ERR_TIME;
   std::chrono::nanoseconds deq_t = BENCHMARK_ERR_TIME;
 };
 
+#define TIMESTAMP(e) std::chrono::time_point e = std::chrono::steady_clock::now()
+#define SINCE(tp) std::chrono::steady_clock::now() - (tp)
+#define DURATION(tp1, tp2) (tp1) - (tp2)
+
 
 benchmark_data benchmark(const std::string& json_str) {
   benchmark_data data;
 
   try {
-    std::chrono::time_point before_parse = std::chrono::steady_clock::now();
+    TIMESTAMP(before_tokenize);
+    std::vector<json::Token> tokens = json::tokenize(json_str);
+    data.tok_t = SINCE(before_tokenize);
+
+    TIMESTAMP(before_parse);
     json::JSON parsed = json::parse(json_str);
-    data.par_t = std::chrono::steady_clock::now() - before_parse;
+    data.par_t = SINCE(before_parse);
     
-    std::chrono::time_point before_serialize = std::chrono::steady_clock::now();
+    TIMESTAMP(before_serialize);
     std::string serialized = json::serialize(parsed);
-    data.ser_t = std::chrono::steady_clock::now() - before_serialize;
+    data.ser_t = SINCE(before_serialize);
 
     try {
-      std::chrono::time_point before_reparse = std::chrono::steady_clock::now();
+      TIMESTAMP(before_reparse);
       json::JSON reparsed = json::parse(serialized);
-      data.repar_t = std::chrono::steady_clock::now() - before_reparse;
+      data.repar_t = SINCE(before_reparse);
 
-      std::chrono::time_point before_deep_equals = std::chrono::steady_clock::now();
+      TIMESTAMP(before_deep_equals);
       if (reparsed.equals_deep(parsed)) {
-        data.deq_t = std::chrono::steady_clock::now() - before_deep_equals;
+        data.deq_t = SINCE(before_deep_equals);
       }
     } catch (const std::runtime_error& err) { return data; }
   } catch (const std::runtime_error& err) { return data; }
@@ -101,10 +112,11 @@ int main(int argc, char** argv) {
 
     std::cout << "Benchmarking " << id << "..." << std::endl;
     std::cout << "--------------------" << std::endl;
-    std::cout << "Parsing Time: " << chrono_nanoseconds_str(data.par_t) << std::endl;
-    std::cout << "Serialization Time: " << chrono_nanoseconds_str(data.ser_t) << std::endl;
-    std::cout << "Reparse Time: " << chrono_nanoseconds_str(data.repar_t) << std::endl;
-    std::cout << "Deep Equality Time: " << chrono_nanoseconds_str(data.deq_t) << std::endl;
+    std::cout << "Tokenizing Time: " << ns_str(data.tok_t) << std::endl;
+    std::cout << "Full Parse Time: " << ns_str(data.par_t) << std::endl;
+    std::cout << "Serialization Time: " << ns_str(data.ser_t) << std::endl;
+    std::cout << "Full Reparse Time: " << ns_str(data.repar_t) << std::endl;
+    std::cout << "Deep Equality Time: " << ns_str(data.deq_t) << std::endl;
     std::cout << "--------------------" << std::endl;
     std::cout << std::endl;
   }

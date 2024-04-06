@@ -44,10 +44,10 @@ namespace json {
 
     // return JSONLiteral(nullptr);
     return std::visit(overloaded {
-      [&](const JSONNumber& number) { return JSONLiteral(number); },
-      [&](const std::nullptr_t& nptr) { return JSONLiteral(nptr); },
-      [&](const bool& boolean) { return JSONLiteral(boolean); },
-      [&](const std::string_view& str) { return JSONLiteral(std::move(json_string_resolve(str))); }
+      [](const JSONNumber& number) { return JSONLiteral(number); },
+      [](const std::nullptr_t& nptr) { return JSONLiteral(nptr); },
+      [](const bool& boolean) { return JSONLiteral(boolean); },
+      [](const std::string_view& str) { return JSONLiteral(std::move(json_string_resolve(str))); }
     }, literal);
   }
 

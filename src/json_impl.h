@@ -26,6 +26,10 @@ namespace json {
     END_OF_FILE
   };
 
+  inline bool isdigit(char ch) {
+    return ch >= '0' && (ch) <= '9';
+  }
+
   typedef std::variant<std::nullptr_t, std::string_view, JSONNumber, bool> TokenLiteral;
 
   inline char stridx(std::string_view str, std::size_t val) {
@@ -83,12 +87,24 @@ namespace json {
     return v.substr(st_subcl(ind, reach), st_addcl(ind, reach) - st_subcl(ind, reach));
   }
 
+  inline std::string_view sv_bef(std::string_view v, std::size_t ind, std::size_t bef) {
+    return v.substr(st_subcl(ind, bef), bef);
+  }
+
+  inline std::string_view sv_af(std::string_view v, std::size_t ind, std::size_t af) {
+    return v.substr(st_addcl(ind, 1), af);
+  }
+
   inline std::string str_ar(std::string_view v, std::size_t ind, std::size_t bef, std::size_t af) {
     return std::string(sv_ar(v, ind, bef, af));
   }
 
-  inline std::string str_ar(std::string_view v, std::size_t ind, std::size_t reach) {
-    return std::string(sv_ar(v, ind, reach));
+  inline std::string str_bef(std::string_view v, std::size_t ind, std::size_t bef) {
+    return std::string(sv_bef(v, ind, bef));
+  }
+
+  inline std::string str_af(std::string_view v, std::size_t ind, std::size_t af) {
+    return std::string(sv_af(v, ind, af));
   }
 
   template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
@@ -98,6 +114,8 @@ namespace json {
     TokenType type;
     TokenLiteral val;
     Token(TokenType type, TokenLiteral val) : type(type), val(val) {}
+    Token(const Token& token) : type(token.type), val(token.val) {}
+    Token(Token&& token) : type(token.type), val(token.val) {}
   };
 
   std::vector<Token> tokenize(std::string_view str);

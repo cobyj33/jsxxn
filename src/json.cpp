@@ -24,23 +24,23 @@ namespace json {
 
   JSON::JSON(const char* value) { this->value = std::string(value); }
   JSON::JSON(std::string_view value) { this->value = std::string(value); }
-  JSON::JSON(std::string value) { this->value = value; }
   JSON::JSON(const std::string& value) { this->value = value; }
   JSON::JSON(std::string&& value) { this->value = value; }
 
   JSON::JSON(JSONNumber value) { this->value = value; }
   
-  JSON::JSON(JSONLiteral value) { this->value = value; }
+  JSON::JSON(const JSONLiteral& value) { this->value = value; }
+  JSON::JSON(JSONLiteral&& value) { this->value = std::move(value); }
   
   JSON::JSON(const JSON& value) { this->value = value.value; }
 
   JSON::JSON(const JSONArray& value) { this->value = value; }
 
-  JSON::JSON(JSONArray&& value) { this->value = value; }
+  JSON::JSON(JSONArray&& value) { this->value = std::move(value); }
 
   JSON::JSON(const JSONObject& value) { this->value = value; }
 
-  JSON::JSON(JSONObject&& value) { this->value = value; }
+  JSON::JSON(JSONObject&& value) { this->value = std::move(value); }
 
   JSON::JSON(JSONValueType type) {
     switch (type) {
@@ -92,8 +92,8 @@ namespace json {
     if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
       if (const JSONNumber* number = std::get_if<JSONNumber>(literal)) {
         return std::visit(overloaded {
-          [&](const std::int64_t val) { return (double)(val); },
-          [&](const double val) { return (val); },
+          [](const std::int64_t val) { return (double)(val); },
+          [](const double val) { return (val); },
         }, *number);
       }
     }
@@ -104,8 +104,8 @@ namespace json {
     if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
       if (const JSONNumber* number = std::get_if<JSONNumber>(literal)) {
         return std::visit(overloaded {
-          [&](const std::int64_t val) { return val; },
-          [&](const double val) { return (std::int64_t)val; },
+          [](const std::int64_t val) { return val; },
+          [](const double val) { return (std::int64_t)val; },
         }, *number);
       }
     }

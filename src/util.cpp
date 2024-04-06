@@ -17,18 +17,18 @@ namespace json {
 
   JSONValueType json_literal_get_type(const JSONLiteral& literal) {
     return std::visit(overloaded {
-      [&](const bool& val) { (void)val; return JSONValueType::BOOLEAN;  },
-      [&](const std::nullptr_t& val) { (void)val; return JSONValueType::NULLPTR; },
-      [&](const std::string& val) { (void)val; return JSONValueType::STRING; },
-      [&](const JSONNumber& number) { (void)number; return JSONValueType::NUMBER; }
+      [](const bool& val) { (void)val; return JSONValueType::BOOLEAN;  },
+      [](const std::nullptr_t& val) { (void)val; return JSONValueType::NULLPTR; },
+      [](const std::string& val) { (void)val; return JSONValueType::STRING; },
+      [](const JSONNumber& number) { (void)number; return JSONValueType::NUMBER; }
     }, literal);
   }
 
   JSONValueType json_value_get_type(const JSONValue& value) {
     return std::visit(overloaded { 
-      [&](const JSONObject& obj) { (void)obj; return JSONValueType::OBJECT; },
-      [&](const JSONArray& arr) { (void)arr; return JSONValueType::ARRAY; },
-      [&](const JSONLiteral& literal) {
+      [](const JSONObject& obj) { (void)obj; return JSONValueType::OBJECT; },
+      [](const JSONArray& arr) { (void)arr; return JSONValueType::ARRAY; },
+      [](const JSONLiteral& literal) {
         return json_literal_get_type(literal);
       }
     }, value);
@@ -110,15 +110,15 @@ namespace json {
     return std::string("null");
 
     // return std::visit(overloaded {
-    //   [&](const JSONNumber& number) { return json_number_serialize(number); },
-    //   [&](const std::nullptr_t& nptr) {
+    //   [](const JSONNumber& number) { return json_number_serialize(number); },
+    //   [](const std::nullptr_t& nptr) {
     //     (void)nptr;
     //     return std::string("null");
     //   },
-    //   [&](const bool& boolean) {
+    //   [](const bool& boolean) {
     //     return boolean ? std::string("true") : std::string("false");
     //   },
-    //   [&](const std::string_view& str) {
+    //   [](const std::string_view& str) {
     //     return std::string(str);
     //   }
     // }, literal);
