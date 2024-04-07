@@ -53,7 +53,12 @@ struct json_test_err {
   json_test_err(json_test_data data, std::string reason) : data(data), reason(reason) {}
 };
 
-std::string chrono_nanoseconds_str(std::chrono::nanoseconds ns) {
+
+#define TIMESTAMP(e) std::chrono::time_point e = std::chrono::steady_clock::now()
+#define SINCE(tp) (std::chrono::steady_clock::now() - (tp))
+#define DURATION(tp1, tp2) ((tp1) - (tp2))
+
+std::string ns_str(std::chrono::nanoseconds ns) {
   return std::to_string(static_cast<double>(ns.count()) / 1000000) + "ms";
 }
 
@@ -82,29 +87,29 @@ int main(int argc, char** argv) {
     std::cout << "Attempting to parse json contents:\n" << test.json_str << std::endl;
 
     try {  
-      std::chrono::time_point before_parse = std::chrono::steady_clock::now();
+      TIMESTAMP(before_parse);
       json::JSON parsed = json::parse(test.json_str);
-      std::chrono::time_point after_parse = std::chrono::steady_clock::now();
+      TIMESTAMP(after_parse);
       std::cout << "SUCCESS in parsing " << test.id << "." << std::endl;
-      std::cout << "Parsing Time: " << chrono_nanoseconds_str(after_parse - before_parse) << std::endl;
+      std::cout << "Parsing Time: " << ns_str(DURATION(after_parse, before_parse)) << std::endl;
       
-      std::chrono::time_point before_serialize = std::chrono::steady_clock::now();
+      TIMESTAMP(before_serialize);
       std::string serialized = json::serialize(parsed);
-      std::chrono::time_point after_serialize = std::chrono::steady_clock::now();
+      TIMESTAMP(after_serialize);
 
       std::cout << "Reserialized version of " << test.id << ":" << std::endl;
       std::cout << serialized << std::endl;
-      std::cout << "Serialization Time: " << chrono_nanoseconds_str(after_serialize - before_serialize) << std::endl;
+      std::cout << "Serialization Time: " << ns_str(DURATION(after_serialize, before_serialize)) << std::endl;
 
       try {
         json::JSON reparsed = json::parse(serialized);
         std::cout << "SUCCESS in reparsing serialized input." << std::endl;
 
-        std::chrono::time_point before_deep_equals = std::chrono::steady_clock::now();
+        TIMESTAMP(before_deep_equals);
         if (reparsed.equals_deep(parsed)) {
-          std::chrono::time_point after_deep_equals = std::chrono::steady_clock::now();
+          TIMESTAMP(after_deep_equals);
           std::cout << "SUCCESS: Reparsed object equals parsed object" << std::endl;
-          std::cout << "Deep Equality Time: " << chrono_nanoseconds_str(after_deep_equals - before_deep_equals) << std::endl;
+          std::cout << "Deep Equality Time: " << ns_str(DURATION(after_deep_equals, before_deep_equals)) << std::endl;
 
           passes.push_back(test);
         } else {

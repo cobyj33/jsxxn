@@ -12,7 +12,7 @@
 namespace json {
 
   JSON::JSON() { this->value = nullptr; }
-  JSON::JSON(nullptr_t value) { this->value = value; }
+  JSON::JSON(std::nullptr_t value) { this->value = value; }
   JSON::JSON(bool value) { this->value = value; }
   JSON::JSON(std::int8_t value) { this->value = static_cast<std::int64_t>(value); }
   JSON::JSON(std::int16_t value) { this->value = static_cast<std::int64_t>(value); }
@@ -20,27 +20,28 @@ namespace json {
   JSON::JSON(std::int64_t value) { this->value = value; }
 
   JSON::JSON(double value) { this->value = value; }
-  
 
   JSON::JSON(const char* value) { this->value = std::string(value); }
   JSON::JSON(std::string_view value) { this->value = std::string(value); }
-  JSON::JSON(std::string value) { this->value = value; }
   JSON::JSON(const std::string& value) { this->value = value; }
-  JSON::JSON(std::string&& value) { this->value = value; }
+  JSON::JSON(std::string&& value) { this->value = std::move(value); }
 
   JSON::JSON(JSONNumber value) { this->value = value; }
   
-  JSON::JSON(JSONLiteral value) { this->value = value; }
+  JSON::JSON(const JSONLiteral& value) { this->value = value; }
+  JSON::JSON(JSONLiteral&& value) { this->value = std::move(value); }
   
-  JSON::JSON(const JSON& value) { this->value = value.value; }
+  JSON::JSON(const JSONObject& value) { this->value = value; }
+  JSON::JSON(JSONObject&& value) { this->value = std::move(value); }
 
   JSON::JSON(const JSONArray& value) { this->value = value; }
+  JSON::JSON(JSONArray&& value) { this->value = std::move(value); }
 
-  JSON::JSON(JSONArray&& value) { this->value = value; }
+  JSON::JSON(const JSONValue& value) { this->value = value; }
+  JSON::JSON(JSONValue&& value) { this->value = std::move(value); }
 
-  JSON::JSON(const JSONObject& value) { this->value = value; }
-
-  JSON::JSON(JSONObject&& value) { this->value = value; }
+  JSON::JSON(const JSON& other) { this->value = other.value; }
+  JSON::JSON(JSON&& other) { this->value = std::move(other.value); }
 
   JSON::JSON(JSONValueType type) {
     switch (type) {
@@ -53,17 +54,32 @@ namespace json {
     }
   }
 
+  JSON& JSON::operator=(const JSON& other) {
+    this->value = other.value;
+    return *this;
+  }
+
+  JSON& JSON::operator=(JSON&& other) {
+    this->value = std::move(other.value);
+    return *this;
+  }
+
+  // JSON& JSON::operator=(const JSONValue& value) {
+  //   this->value = value;
+  //   return *this;
+  // }
+
+  // JSON& JSON::operator=(JSONValue&& value) {
+  //   this->value = std::move(value);
+  //   return *this;
+  // }
+
   JSONValueType JSON::type() {
     return json_value_get_type(this->value);
   }
 
   bool JSON::equals_deep(const JSON& other) {
     return json_value_equals_deep(this->value, other.value);
-  }
-
-  JSON& JSON::operator=(const JSON& other) {
-    this->value = other.value;
-    return *this;
   }
 
   JSON::operator bool() {
@@ -92,8 +108,8 @@ namespace json {
     if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
       if (const JSONNumber* number = std::get_if<JSONNumber>(literal)) {
         return std::visit(overloaded {
-          [&](const std::int64_t val) { return (double)(val); },
-          [&](const double val) { return (val); },
+          [](const std::int64_t val) { return (double)(val); },
+          [](const double val) { return (val); },
         }, *number);
       }
     }
@@ -104,21 +120,21 @@ namespace json {
     if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
       if (const JSONNumber* number = std::get_if<JSONNumber>(literal)) {
         return std::visit(overloaded {
-          [&](const std::int64_t val) { return val; },
-          [&](const double val) { return (std::int64_t)val; },
+          [](const std::int64_t val) { return val; },
+          [](const double val) { return (std::int64_t)val; },
         }, *number);
       }
     }
     throw std::runtime_error("[JSON::operator std::int64_t()]");
   }
 
-  JSON::operator nullptr_t() {
+  JSON::operator std::nullptr_t() {
     if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
-      if (std::holds_alternative<nullptr_t>(*literal)) {
+      if (std::holds_alternative<std::nullptr_t>(*literal)) {
         return nullptr;
       }
     }
-    throw std::runtime_error("[JSON::operator nullptr_t()]");
+    throw std::runtime_error("[JSON::operator std::nullptr_t()]");
   }
 
   JSON JSON::operator[](std::string_view key) {
@@ -148,7 +164,7 @@ namespace json {
 
   void JSON::push_back(JSON&& json) {
     if (JSONArray* arr = std::get_if<JSONArray>(&this->value)) {
-      arr->push_back(json);
+      arr->push_back(std::move(json));
       return;
     }
     throw std::runtime_error("[JSON::push_back] pushing on non-array type"); 

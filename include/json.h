@@ -15,7 +15,7 @@ namespace json {
   class JSON;
 
   typedef std::variant<std::int64_t, double> JSONNumber;
-  typedef std::variant<nullptr_t, std::string, JSONNumber, bool> JSONLiteral;
+  typedef std::variant<std::nullptr_t, std::string, JSONNumber, bool> JSONLiteral;
   typedef std::map<std::string, JSON, std::less<>> JSONObject;
   typedef std::vector<JSON> JSONArray;
 
@@ -32,8 +32,14 @@ namespace json {
   };
 
   bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b);
+  // equating JSONNumber's trivially is tricky, since equating doubles should
+  // really be done with an epsilon value in mind
+  // inline bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b) { return a == b; };
 
   bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b);
+  // Since equating JSONNumber's trivially is tricky, equating JSONLiteral's trivially
+  // is also tricky
+  // inline bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b) { return a == b; };
   std::string json_literal_serialize(const JSONLiteral& literal);
 
   JSONValueType json_literal_get_type(const JSONLiteral& value);
@@ -42,6 +48,7 @@ namespace json {
   const char* json_value_type_str(JSONValueType jvt);
   bool json_value_equals_deep(const JSONValue& a, const JSONValue& b);
 
+  std::string json_string_serialize(std::string_view v);
   std::string json_literal_serialize(const JSONLiteral& literal);
   std::string json_number_serialize(const JSONNumber& number);
 
@@ -56,7 +63,7 @@ namespace json {
 
       JSON(JSONValueType type);
       
-      JSON(nullptr_t value);
+      JSON(std::nullptr_t value);
 
       JSON(bool value);
 
@@ -68,12 +75,12 @@ namespace json {
       
       JSON(const char* value);
       JSON(std::string_view value);
-      JSON(std::string value);
       JSON(const std::string& value);
       JSON(std::string&& value);
 
       JSON(JSONNumber value);
-      JSON(JSONLiteral value);
+      JSON(const JSONLiteral& value);
+      JSON(JSONLiteral&& value);
       
       JSON(const JSONArray& value);
       JSON(JSONArray&& value);
@@ -82,19 +89,32 @@ namespace json {
       JSON(JSONObject&& value);
 
       JSON(const JSON& value);
+      JSON(JSON&& value);
+
+      explicit JSON(const JSONValue& value);
+      explicit JSON(JSONValue&& value);
 
       bool equals_deep(const JSON& other);
       
       JSONValueType type();
 
       JSON& operator=(const JSON& other);
+      JSON& operator=(JSON&& other);
+
+      // note that directly defining assignment operators for JSONValue causes
+      // an ambiguous overload conflict with assigning simple values like string
+      // litearls to JSON objects, since JSON::JSON(const JSONValue&) and
+      // JSON::JSON(JSONValue&&) exist.
+      // JSON& operator=(const JSONValue& value);
+      // JSON& operator=(JSONValue&& value);
+
 
       // Literal Methods
       operator bool();
       operator std::string();
       operator double();
       operator std::int64_t();
-      operator nullptr_t();
+      operator std::nullptr_t();
       operator JSONValue();
       operator JSONValue&();
       
