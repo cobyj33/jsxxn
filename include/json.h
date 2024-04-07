@@ -85,12 +85,25 @@ namespace json {
       JSON(JSONObject&& value);
 
       JSON(const JSON& value);
+      JSON(JSON&& value);
+
+      explicit JSON(const JSONValue& value);
+      explicit JSON(JSONValue&& value);
 
       bool equals_deep(const JSON& other);
       
       JSONValueType type();
 
       JSON& operator=(const JSON& other);
+      JSON& operator=(JSON&& other);
+
+      // note that directly defining assignment operators for JSONValue causes
+      // an ambiguous overload conflict with assigning simple values like string
+      // litearls to JSON objects, since JSON::JSON(const JSONValue&) and
+      // JSON::JSON(JSONValue&&) exist.
+      // JSON& operator=(const JSONValue& value);
+      // JSON& operator=(JSONValue&& value);
+
 
       // Literal Methods
       operator bool();

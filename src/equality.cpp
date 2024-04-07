@@ -12,8 +12,7 @@ namespace json {
       },
       [](const JSONObject& obj1, const JSONObject& obj2) {
         if (obj1.size() != obj2.size()) return false;
-
-        for (const std::pair<std::string, JSON> entry : obj1) {
+        for (auto& entry : obj1) {
           if (obj2.count(entry.first) == 0) return false;
           if (!json_value_equals_deep(entry.second.value, obj2.at(entry.first).value))
             return false;
@@ -29,8 +28,8 @@ namespace json {
         return true;
       },
       [](const auto& a1, const auto& a2) {
-        (void)a1; (void)a2;
         return false;
+        (void)a1; (void)a2;
       }
     }, a, b);
   }  
