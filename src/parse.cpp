@@ -30,19 +30,23 @@ namespace json {
   }
 
   inline JSONLiteral token_lit_to_json_lit(TokenLiteral literal) {
-    
-    // if (std::holds_alternative<JSONNumber>(literal)) {
-    //   JSONNumber num = std::get<JSONNumber>(literal);
-    //   return JSONLiteral(num);
-    // } else if (std::holds_alternative<std::string_view>(literal)) {
-    //   std::string_view v = std::get<std::string_view>(literal);
-    //   return JSONLiteral(std::move(json_string_resolve(v)));
-    // } else if (std::holds_alternative<bool>(literal)) {
-    //   bool b = std::get<bool>(literal);
-    //   return JSONLiteral(b);
-    // }
+    // not sure if if-chain is faster than std::visit with non-capturing lambdas
 
-    // return JSONLiteral(nullptr);
+    #if 0
+    if (std::holds_alternative<JSONNumber>(literal)) {
+      JSONNumber num = std::get<JSONNumber>(literal);
+      return JSONLiteral(num);
+    } else if (std::holds_alternative<std::string_view>(literal)) {
+      std::string_view v = std::get<std::string_view>(literal);
+      return JSONLiteral(std::move(json_string_resolve(v)));
+    } else if (std::holds_alternative<bool>(literal)) {
+      bool b = std::get<bool>(literal);
+      return JSONLiteral(b);
+    }
+
+    return JSONLiteral(nullptr);
+    #endif
+
     return std::visit(overloaded {
       [](const JSONNumber number) { return JSONLiteral(number); },
       [](const std::nullptr_t nptr) { return JSONLiteral(nptr); },

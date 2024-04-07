@@ -31,11 +31,15 @@ namespace json {
     NULLPTR
   };
 
-  // bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b);
-  inline bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b) { return a == b; };
+  bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b);
+  // equating JSONNumber's trivially is tricky, since equating doubles should
+  // really be done with an epsilon value in mind
+  // inline bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b) { return a == b; };
 
-  // bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b);
-  inline bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b) { return a == b; };
+  bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b);
+  // Since equating JSONNumber's trivially is tricky, equating JSONLiteral's trivially
+  // is also tricky
+  // inline bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b) { return a == b; };
   std::string json_literal_serialize(const JSONLiteral& literal);
 
   JSONValueType json_literal_get_type(const JSONLiteral& value);

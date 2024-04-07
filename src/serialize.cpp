@@ -51,10 +51,10 @@ namespace json {
         case '\t': output.append("\\t"); break;
         default: {
           // control characters get turned into unicode escapes
-          if (std::iscntrl(str[i])) {
+          if (std::iscntrl(str[i]) || str[i] == 127) {
             output += "\\u";
             output += u16_as_hexstr(str[i]);
-          } else { // all other characters can just be unescaped
+          } else { // all other unicode characters can just be unescaped
             output.push_back(str[i]);
           }
         }

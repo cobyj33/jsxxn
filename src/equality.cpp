@@ -34,43 +34,43 @@ namespace json {
     }, a, b);
   }  
 
-  // bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b) {
-  //   constexpr double DOUBLE_EPSILON = 1E-6;
+  bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b) {
+    constexpr double DOUBLE_EPSILON = 1E-6;
 
-  //   return std::visit(overloaded {
-  //     [](const std::int64_t& a1, const std::int64_t& b1) { return a1 == b1; },
-  //     [](const std::int64_t& a1, const double& b1) {
-  //       return std::abs(static_cast<double>(a1) - b1) < DOUBLE_EPSILON;
-  //     },
-  //     [](const double& a1, const std::int64_t& b1) {
-  //       return std::abs(a1 - static_cast<double>(b1)) < DOUBLE_EPSILON;
-  //     },
-  //     [](const double& a1, const double& b1) {
-  //       return std::abs(a1 - b1) < DOUBLE_EPSILON;
-  //     }
-  //   }, a, b); 
-  // }
+    return std::visit(overloaded {
+      [](const std::int64_t& a1, const std::int64_t& b1) { return a1 == b1; },
+      [](const std::int64_t& a1, const double& b1) {
+        return std::abs(static_cast<double>(a1) - b1) < DOUBLE_EPSILON;
+      },
+      [](const double& a1, const std::int64_t& b1) {
+        return std::abs(a1 - static_cast<double>(b1)) < DOUBLE_EPSILON;
+      },
+      [](const double& a1, const double& b1) {
+        return std::abs(a1 - b1) < DOUBLE_EPSILON;
+      }
+    }, a, b); 
+  }
 
 
-  // bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b) {
-  //   return std::visit(overloaded {
-  //     [](const JSONNumber& a1, const JSONNumber& b1) {
-  //       return json_number_equals_deep(a1, b1);  
-  //     },
-  //     [](const std::nullptr_t& a, const std::nullptr_t& b) {
-  //       (void)a; (void)b;
-  //       return true;
-  //     },
-  //     [](const bool& a, const bool& b) {
-  //       return a == b;
-  //     },
-  //     [](const std::string& a, const std::string& b) {
-  //       return a == b;
-  //     },
-  //     [](const auto& a, const auto& b) {
-  //       (void)a; (void)b;
-  //       return false;
-  //     }
-  //   }, a, b);
-  // }
+  bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b) {
+    return std::visit(overloaded {
+      [](const JSONNumber& a1, const JSONNumber& b1) {
+        return json_number_equals_deep(a1, b1);  
+      },
+      [](const std::nullptr_t& a, const std::nullptr_t& b) {
+        (void)a; (void)b;
+        return true;
+      },
+      [](const bool& a, const bool& b) {
+        return a == b;
+      },
+      [](const std::string& a, const std::string& b) {
+        return a == b;
+      },
+      [](const auto& a, const auto& b) {
+        (void)a; (void)b;
+        return false;
+      }
+    }, a, b);
+  }
 };

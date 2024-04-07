@@ -55,8 +55,8 @@ struct benchmark_data {
 };
 
 #define TIMESTAMP(e) std::chrono::time_point e = std::chrono::steady_clock::now()
-#define SINCE(tp) std::chrono::steady_clock::now() - (tp)
-#define DURATION(tp1, tp2) (tp1) - (tp2)
+#define SINCE(tp) (std::chrono::steady_clock::now() - (tp))
+#define DURATION(tp1, tp2) ((tp1) - (tp2))
 
 
 benchmark_data benchmark(const std::string& json_str) {
