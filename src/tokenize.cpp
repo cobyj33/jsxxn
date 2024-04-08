@@ -12,6 +12,13 @@
 
 namespace json {
 
+  struct LexState {
+    std::string_view str;
+    std::size_t curr;
+    const std::size_t size;
+    LexState(std::string_view str) : str(str), curr(0), size(str.length()) {}
+  };
+
   std::string sec_string(std::string_view v, std::size_t start, std::size_t end);
   bool exact_match(std::string_view str, std::string_view check, std::size_t start);
   const char* ascii_cstr(char ch);
@@ -364,10 +371,8 @@ namespace json {
   }
 
   bool exact_match(std::string_view str, std::string_view check, std::size_t start) {
-    if (str.length() - start < check.length()) return false;
-
     std::size_t i = 0;
-    for (; i < check.length() && str[i + start] == check[i]; i++);
+    for (; i < check.length() && i + start < str.length() && str[i + start] == check[i]; i++);
     return i == check.length();
   }
 
@@ -377,10 +382,6 @@ namespace json {
       "->" << interpret_utf8char(v.substr(start, end - start)) << "<-" << linetoend(v, end, 30) << ")";
     return ss.str();
   }
-
-  
-
-  
 
   /* Used mainly for reporting char codes in errors which may have control characters */
   const char* ascii_cstr(char ch) {

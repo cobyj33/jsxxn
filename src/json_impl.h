@@ -53,6 +53,54 @@ namespace json {
       (ch >= 'a' && ch <= 'f') * (static_cast<std::uint16_t>(ch - 'a' + 10));
   }
 
+  /**
+   * From the UTF-8 wikipedia page: https://en.wikipedia.org/wiki/UTF-8
+   * Table detailing how different code point ranges are encoded in UTF-8 
+   * +------------------+-----------------+----------+----------+----------+----------+
+   * | First code point | Last code point |  Byte 1  |  Byte 2  |  Byte 3  |  Byte 4  |
+   * +------------------+-----------------+----------+----------+----------+----------+
+   * | U+0000           |      U+007F     | 0xxxxxxx |          |          |          |
+   * | U+0080           |      U+07FF     | 110xxxxx | 10xxxxxx |          |          |
+   * | U+0800           |      U+FFFF     | 1110xxxx | 10xxxxxx | 10xxxxxx |          |
+   * | U+010000         |     U+10FFFF    | 11110xxx | 10xxxxxx | 10xxxxxx | 10xxxxxx |
+   * +------------------+-----------------+----------+----------+----------+----------+
+  */
+
+  /**
+   * isutf8gstart: is utf8 grapheme start
+  */
+  inline bool isutf8gstart(unsigned char ch) {
+    return (ch <= 0x7F) || ((ch & 0x80) && (ch & 0x40));
+  }
+
+  /**
+   * Returns the start of the next grapheme in the string view starting from ind
+  */
+  inline std::size_t utf8gnext(std::string_view v, std::size_t ind) {
+    ind++;
+    while (!isutf8gstart(v[ind])) ind++;
+    return ind;
+  }
+
+  /**
+   * Returns the beginning of the utf-8 grapheme in the string view at ind 
+  */
+  inline std::size_t utf8beg(std::string_view v, std::size_t ind) {
+    while (!isutf8gstart(v[ind]) && ind > 0) ind--;
+    return ind;
+  }
+
+  /**
+   * Returns a view of the utf-8 grapheme specified at ind
+  */
+  inline std::string_view utf8gat(std::string_view v, std::size_t ind) {
+    std::size_t beg = utf8beg(v, ind);
+    return v.substr(beg, utf8gnext(v, ind) - beg);
+  }
+
+  /**
+   * Converts a ucs4 code point to a utf-8 string
+  */
   inline std::string u16_as_utf8(std::uint16_t val) {
     std::string res;
     if (val < 0x0080) { // ascii
@@ -70,12 +118,19 @@ namespace json {
     }
   }
 
+  /**
+   * Adds a to b, while clamping the result to never overflow past SIZE_MAX
+  */
   inline std::size_t st_addcl(std::size_t a, std::size_t b) {
-    return (SIZE_MAX - b) < a ? SIZE_MAX : a + b;
+    return ((SIZE_MAX - b) < a) * (SIZE_MAX) + ((SIZE_MAX - b) >= a) * (a + b);
   }
 
+  /**
+   * Subtract b from a ( do (a - b)), while clamping the result to never
+   * roll over under 0.
+  */
   inline std::size_t st_subcl(std::size_t a, std::size_t b) {
-    return (b > a) ? 0 : a - b;
+    return (b <= a) * (a - b);
   }
 
   inline std::string_view sv_ar(std::string_view v, std::size_t ind, std::size_t bef, std::size_t af) {
@@ -106,21 +161,28 @@ namespace json {
     return std::string(sv_af(v, ind, af));
   }
 
+  /**
+   * Includes the character specified at ind
+  */
   inline std::string_view linetobeg(std::string_view v, std::size_t ind) {
     std::size_t begin = ind; 
     while (v[begin] != '\n' && begin > 0) begin--;
     begin += v[begin] == '\n';
-    return v.substr(begin, (ind + 1) - begin);
+    return v.substr(begin, utf8gnext(v, ind) - begin);
   }
-
+  
+  /**
+   * Includes the character specified at ind
+  */
   inline std::string_view linetobeg(std::string_view v, std::size_t ind, std::size_t lim) {
     std::size_t begin = ind;
     while (v[begin] != '\n' && begin > 0 && lim > 0) {
+      lim -= isutf8gstart(v[begin]);
       begin--;
-      lim--;
     }
-    begin += v[begin] == '\n';
-    return v.substr(begin, (ind + 1) - begin);
+
+    begin += v[begin] == '\n'; 
+    return v.substr(begin, utf8gnext(v, ind) - begin);
   }
 
   inline std::string_view linebef(std::string_view v, std::size_t ind) {
@@ -142,9 +204,11 @@ namespace json {
   inline std::string_view linetoend(std::string_view v, std::size_t ind, std::size_t lim) {
     std::size_t end = ind;
     while (!(v[end] == '\r' || v[end] == '\n') && end < v.length() && lim > 0) {
+      lim -= isutf8gstart(v[end]);
       end++;
-      lim--; 
     }
+    // "end" should only end at the beginning of a grapheme, the end of the
+    // string view, a carriage return, or a new line 
     return v.substr(ind, end - ind);
   }
 
@@ -164,42 +228,6 @@ namespace json {
     while (!(v[end] == '\r' || v[end] == '\n') && end < v.length()) end++;
     return v.substr(begin, end - begin);
   }
-
-  /**
-   * From the UTF-8 wikipedia page: https://en.wikipedia.org/wiki/UTF-8
-   * Table detailing how different code point ranges are encoded in UTF-8 
-   * +------------------+-----------------+----------+----------+----------+----------+
-   * | First code point | Last code point |  Byte 1  |  Byte 2  |  Byte 3  |  Byte 4  |
-   * +------------------+-----------------+----------+----------+----------+----------+
-   * | U+0000           |      U+007F     | 0xxxxxxx |          |          |          |
-   * | U+0080           |      U+07FF     | 110xxxxx | 10xxxxxx |          |          |
-   * | U+0800           |      U+FFFF     | 1110xxxx | 10xxxxxx | 10xxxxxx |          |
-   * | U+010000         |     U+10FFFF    | 11110xxx | 10xxxxxx | 10xxxxxx | 10xxxxxx |
-   * +------------------+-----------------+----------+----------+----------+----------+
-  */
-
-  /**
-   * isutf8gstart: is utf8 grapheme start
-  */
-  inline bool isutf8gstart(unsigned char ch) {
-    return (ch <= 0x7F) || ((ch & 0x80) && (ch & 0x40));
-  }
-
-  inline std::size_t utf8gnext(std::string_view v, std::size_t ind) {
-    ind++;
-    while (!isutf8gstart(v[ind])) ind++;
-    return ind;
-  }
-
-  inline std::size_t utf8beg(std::string_view v, std::size_t ind) {
-    while (!isutf8gstart(v[ind]) && ind > 0) ind--;
-    return ind;
-  }
-
-  inline std::string_view utf8gat(std::string_view v, std::size_t ind) {
-    std::size_t beg = utf8beg(v, ind);
-    return v.substr(beg, utf8gnext(v, ind) - beg);
-  }
   
   template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
   template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
@@ -212,17 +240,9 @@ namespace json {
     Token(Token&& token) : type(token.type), val(token.val) {}
   };
 
-  struct LexState {
-    std::string_view str;
-    std::size_t curr;
-    const std::size_t size;
-    LexState(std::string_view str) : str(str), curr(0), size(str.length()) {}
-  };
-
-
   std::vector<Token> tokenize(std::string_view str);
 
-  Token nextToken(std::string_view str, std::size_t val);
+  Token nextToken(std::string_view str, std::size_t start);
 
   // assumes a valid json string
   std::string json_string_resolve(std::string_view v);
