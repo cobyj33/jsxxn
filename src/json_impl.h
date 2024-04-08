@@ -70,7 +70,6 @@ namespace json {
     }
   }
 
-
   inline std::size_t st_addcl(std::size_t a, std::size_t b) {
     return (SIZE_MAX - b) < a ? SIZE_MAX : a + b;
   }
@@ -107,6 +106,101 @@ namespace json {
     return std::string(sv_af(v, ind, af));
   }
 
+  inline std::string_view linetobeg(std::string_view v, std::size_t ind) {
+    std::size_t begin = ind; 
+    while (v[begin] != '\n' && begin > 0) begin--;
+    begin += v[begin] == '\n';
+    return v.substr(begin, (ind + 1) - begin);
+  }
+
+  inline std::string_view linetobeg(std::string_view v, std::size_t ind, std::size_t lim) {
+    std::size_t begin = ind;
+    while (v[begin] != '\n' && begin > 0 && lim > 0) {
+      begin--;
+      lim--;
+    }
+    begin += v[begin] == '\n';
+    return v.substr(begin, (ind + 1) - begin);
+  }
+
+  inline std::string_view linebef(std::string_view v, std::size_t ind) {
+    std::string_view tobeg = linetobeg(v, ind);
+    return tobeg.substr(0, st_subcl(tobeg.length(), 1));
+  }
+
+  inline std::string_view linebef(std::string_view v, std::size_t ind, std::size_t lim) {
+    std::string_view tobeg = linetobeg(v, ind, lim);
+    return tobeg.substr(0, st_subcl(tobeg.length(), 1));
+  }
+
+  inline std::string_view linetoend(std::string_view v, std::size_t ind) {
+    std::size_t end = ind + 1;
+    while (!(v[end] == '\r' || v[end] == '\n') && end < v.length()) end++;
+    return v.substr(ind, end - ind);
+  }
+
+  inline std::string_view linetoend(std::string_view v, std::size_t ind, std::size_t lim) {
+    std::size_t end = ind;
+    while (!(v[end] == '\r' || v[end] == '\n') && end < v.length() && lim > 0) {
+      end++;
+      lim--; 
+    }
+    return v.substr(ind, end - ind);
+  }
+
+  inline std::string_view lineaf(std::string_view v, std::size_t ind) {
+    return linetoend(v, ind).substr(1);
+  }
+
+  inline std::string_view lineaf(std::string_view v, std::size_t ind, std::size_t lim) {
+    return linetoend(v, ind, lim).substr(1);
+  }
+
+  inline std::string_view lineof(std::string_view v, std::size_t ind) {
+    std::size_t begin = ind; 
+    std::size_t end = ind;
+    while (v[begin] != '\n' && begin > 0) begin--;
+    begin += v[begin] == '\n';
+    while (!(v[end] == '\r' || v[end] == '\n') && end < v.length()) end++;
+    return v.substr(begin, end - begin);
+  }
+
+  /**
+   * From the UTF-8 wikipedia page: https://en.wikipedia.org/wiki/UTF-8
+   * Table detailing how different code point ranges are encoded in UTF-8 
+   * +------------------+-----------------+----------+----------+----------+----------+
+   * | First code point | Last code point |  Byte 1  |  Byte 2  |  Byte 3  |  Byte 4  |
+   * +------------------+-----------------+----------+----------+----------+----------+
+   * | U+0000           |      U+007F     | 0xxxxxxx |          |          |          |
+   * | U+0080           |      U+07FF     | 110xxxxx | 10xxxxxx |          |          |
+   * | U+0800           |      U+FFFF     | 1110xxxx | 10xxxxxx | 10xxxxxx |          |
+   * | U+010000         |     U+10FFFF    | 11110xxx | 10xxxxxx | 10xxxxxx | 10xxxxxx |
+   * +------------------+-----------------+----------+----------+----------+----------+
+  */
+
+  /**
+   * isutf8gstart: is utf8 grapheme start
+  */
+  inline bool isutf8gstart(unsigned char ch) {
+    return (ch <= 0x7F) || ((ch & 0x80) && (ch & 0x40));
+  }
+
+  inline std::size_t utf8gnext(std::string_view v, std::size_t ind) {
+    ind++;
+    while (!isutf8gstart(v[ind])) ind++;
+    return ind;
+  }
+
+  inline std::size_t utf8beg(std::string_view v, std::size_t ind) {
+    while (!isutf8gstart(v[ind]) && ind > 0) ind--;
+    return ind;
+  }
+
+  inline std::string_view utf8gat(std::string_view v, std::size_t ind) {
+    std::size_t beg = utf8beg(v, ind);
+    return v.substr(beg, utf8gnext(v, ind) - beg);
+  }
+  
   template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
   template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
@@ -118,7 +212,17 @@ namespace json {
     Token(Token&& token) : type(token.type), val(token.val) {}
   };
 
+  struct LexState {
+    std::string_view str;
+    std::size_t curr;
+    const std::size_t size;
+    LexState(std::string_view str) : str(str), curr(0), size(str.length()) {}
+  };
+
+
   std::vector<Token> tokenize(std::string_view str);
+
+  Token nextToken(std::string_view str, std::size_t val);
 
   // assumes a valid json string
   std::string json_string_resolve(std::string_view v);

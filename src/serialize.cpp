@@ -20,8 +20,8 @@ namespace json {
 
   std::string json_number_serialize(const JSONNumber& number) {
     return std::visit(overloaded {
-      [](const std::int64_t& num) { return std::to_string(num); },
-      [](const double& num) { return std::to_string(num); }
+      [](const std::int64_t num) { return std::to_string(num); },
+      [](const double num) { return std::to_string(num); }
     }, number);
   }
 
@@ -33,8 +33,8 @@ namespace json {
 
   void json_number_serialize(const JSONNumber& number, std::string& output) {
     std::visit(overloaded {
-      [&](const std::int64_t& num) { output += std::to_string(num); },
-      [&](const double& num) { output += std::to_string(num); }
+      [&](const std::int64_t num) { output += std::to_string(num); },
+      [&](const double num) { output += std::to_string(num); }
     }, number);
   }
 
@@ -73,11 +73,11 @@ namespace json {
   void json_literal_serialize(const JSONLiteral& literal, std::string& output) { 
     std::visit(overloaded {
       [&](const JSONNumber& number) { json_number_serialize(number, output); },
-      [&](const std::nullptr_t& nptr) {
+      [&](const std::nullptr_t nptr) {
         (void)nptr;
         output += "null";
       },
-      [&](const bool& boolean) {
+      [&](const bool boolean) {
         output += boolean ? "true" : "false";
       },
       [&](const std::string& str) {

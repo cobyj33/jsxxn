@@ -17,8 +17,8 @@ namespace json {
 
   JSONValueType json_literal_get_type(const JSONLiteral& literal) {
     return std::visit(overloaded {
-      [](const bool& val) { (void)val; return JSONValueType::BOOLEAN;  },
-      [](const std::nullptr_t& val) { (void)val; return JSONValueType::NULLPTR; },
+      [](const bool val) { (void)val; return JSONValueType::BOOLEAN;  },
+      [](const std::nullptr_t val) { (void)val; return JSONValueType::NULLPTR; },
       [](const std::string& val) { (void)val; return JSONValueType::STRING; },
       [](const JSONNumber& number) { (void)number; return JSONValueType::NUMBER; }
     }, literal);
@@ -117,12 +117,12 @@ namespace json {
     #endif 
 
     return std::visit(overloaded {
-      [](const JSONNumber& number) { return json_number_serialize(number); },
+      [](const JSONNumber number) { return json_number_serialize(number); },
       [](const std::nullptr_t& nptr) {
         (void)nptr;
         return std::string("null");
       },
-      [](const bool& boolean) {
+      [](const bool boolean) {
         return boolean ? std::string("true") : std::string("false");
       },
       [](const std::string_view& str) {

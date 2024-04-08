@@ -12,17 +12,28 @@
 
 namespace json {
 
+  std::string sec_string(std::string_view v, std::size_t start, std::size_t end);
   bool exact_match(std::string_view str, std::string_view check, std::size_t start);
-  std::uint16_t xdigit_as_u16(char ch);
-  std::string u16_as_utf8(std::uint16_t val);
-  std::string char_code_str(char ch);
+  const char* ascii_cstr(char ch);
 
-  struct LexState {
-    std::string_view str;
-    std::size_t curr;
-    const std::size_t size;
-    LexState(std::string_view str) : str(str), curr(0), size(str.length()) {}
-  };
+  inline std::string ascii_str(char ch) {
+    return std::string(ascii_cstr(ch));
+  }
+
+  inline std::string sec_string(std::string_view v, std::size_t ind) {
+    return sec_string(v, utf8beg(v, ind), utf8gnext(v, ind));
+  }
+
+  inline std::string_view interpret_utf8char(std::string_view utf8char) {
+    if (utf8char.size() == 1UL && static_cast<std::uint8_t>(utf8char[0]) <= 0x7F)
+      return ascii_cstr(utf8char[0]);
+    return utf8char;
+  }
+
+  inline std::string utf8charstr(std::string_view utf8char) {
+    return std::string(interpret_utf8char(utf8char));
+  }
+
 
   Token tokenize_number(LexState& ls);
   Token tokenize_int(LexState& ls);
@@ -66,9 +77,8 @@ namespace json {
         case 'n': res.push_back(consume_keyword(ls, "null", TokenLiteral(nullptr), TokenType::NULLPTR)); break;
         default: {
           std::stringstream errmsg;
-          errmsg << "Unknown unhandled character: '" << char_code_str(ls.str[ls.curr])
-          << "' at index " << ls.curr << " (" << str_bef(ls.str, ls.curr, 15) <<
-          "->" << ls.str[ls.curr] << "<-" << str_af(ls.str, ls.curr, 15) << ")"; 
+          errmsg << "Unknown unhandled character: '" << interpret_utf8char(utf8gat(ls.str, ls.curr))
+          << "' at index " << ls.curr << " " << sec_string(ls.str, ls.curr); 
           throw std::runtime_error(errmsg.str()); 
         }
       }
@@ -76,6 +86,71 @@ namespace json {
 
     res.push_back(Token(TokenType::END_OF_FILE, nullptr));
     return res;
+  }
+
+  /**
+   * Looks ahead from the current number token in order to classify a number as
+   * either a float or an int, and then dispatches either toward tokenize_float
+   * or tokenize_int respectively in order to parse the number.
+   * 
+   * Also handles many parsing errors, which largely simplifies the
+   * implementation of tokenize_int and tokenize_float
+   * 
+   * Errors handled include:
+   *  Missing integer part: (Ex: "-", ".", "-.", "-E13")
+   *  Leading Zeros: (Ex: "012", "012.53")
+   *  Invalid exponential part: (Ex: )
+   *  Trailing Decimal Point: (Ex: "1.", "123.")
+   * 
+   * Therefore, these errors do not have to be checked for in either
+   * tokenize_int or tokenize_float
+  */
+  Token tokenize_number(LexState& ls) {
+    std::size_t lookahead = ls.curr;
+    lookahead += ls.str[lookahead] == '-'; // consume -
+
+    if ((stridx(ls.str, lookahead)) == '.')
+      throw std::runtime_error("[tokenize_number] decimal with no integer part");
+
+    if (!isdigit(stridx(ls.str, lookahead)))
+      throw std::runtime_error("[tokenize_number] no integer part");
+
+    if (ls.str[lookahead] == '0' && isdigit(stridx(ls.str, lookahead + 1)))
+      throw std::runtime_error("[tokenize_number] leading zeros detected"); 
+
+    for (; lookahead < ls.size && isdigit(ls.str[lookahead]); lookahead++); // consume integer part
+
+    if (stridx(ls.str, lookahead) == '.') { // float handling
+      if (!isdigit(stridx(ls.str, lookahead + 1)))
+        throw std::runtime_error("[tokenize_number] trailing decimal point");
+      return tokenize_float(ls);
+    }
+
+    if (stridx(ls.str, lookahead) == 'e' || stridx(ls.str, lookahead) == 'E') { // exponential part
+      lookahead++;
+
+      /**
+       * I decided to not bother for missing integer parts on the exponentials here,
+       * as tokenize_float would need to check anyway since there is an early
+       * exit whenever a decimal point is detected. Therefore, both tokenize_int
+       * and tokenize_float check for a missing integer part
+      */
+      switch (stridx(ls.str, lookahead)) {
+        case '-': return tokenize_float(ls);
+        case '+':
+        case '0': case '1': case '2': case '3':
+        case '4': case '5': case '6': case '7': case '8':
+        case '9': return tokenize_int(ls);
+        case '\0': throw std::runtime_error("[tokenize_number] " // handle null from stridx
+          "Exponential part followed by NUL");
+        default: throw std::runtime_error("Exponential part followed by "
+            "invalid character: " + utf8charstr(utf8gat(ls.str, lookahead)));
+      }
+    }
+
+    // fall through to int, as no decimal point was found, nor was any
+    // negative exponential part found
+    return tokenize_int(ls);
   }
 
   /**
@@ -93,13 +168,10 @@ namespace json {
   */
   Token tokenize_int(LexState& ls) {
     const std::size_t start = ls.curr; // 
-    std::int64_t num = 0;
-    std::int64_t sign = 1;
+    std::int64_t num = 0L;
 
-    if (ls.str[ls.curr] == '-') { // read minus sign
-      ls.curr++;
-      sign = -1;
-    }
+    std::int64_t sign = 1 * (-1 * (ls.str[ls.curr] == '-'));
+    ls.curr += ls.str[ls.curr] == '-';
 
     for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
       std::int64_t digit = (ls.str[ls.curr] - '0');
@@ -111,13 +183,15 @@ namespace json {
       num = num * 10LL + digit;
     }
 
+    // note how we don't have to check for decimals here, as we assume that this
+    // has already been confirmed by tokenize_number
+
     // read exponential part
     if (stridx(ls.str, ls.curr) == 'e' || stridx(ls.str, ls.curr) == 'E') {
       ls.curr++;
       constexpr int MAX_EXPONENTIAL = 20;
       unsigned int exponential = 0;
-
-      if (stridx(ls.str, ls.curr) == '+') ls.curr++;
+      ls.curr += stridx(ls.str, ls.curr) == '+';
 
       if (!isdigit(stridx(ls.str, ls.curr)))
         throw std::runtime_error("[tokenize_int] exponential missing integer part");
@@ -145,19 +219,15 @@ namespace json {
   }
 
   Token tokenize_float(LexState& ls) {
-    double num = 0;
-    int sign = 1;
-
-    if (ls.str[ls.curr] == '-') { // read minus sign
-      ls.curr++;
-      sign = -1;
-    }
+    double num = 0.0;
+    int sign = 1.0 * (-1.0 * (ls.str[ls.curr] == '-'));
+    ls.curr += ls.str[ls.curr] == '-'; 
 
     // read integer part
     for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
       double digit = (ls.str[ls.curr] - '0');
-      if ((DBL_MAX - digit) / 10 <= num) throw std::runtime_error("[tokenize_float] number too large");
-      num = num * 10 + digit;
+      if ((DBL_MAX - digit) / 10.0 <= num) throw std::runtime_error("[tokenize_float] number too large");
+      num = num * 10.0 + digit;
     }
 
     if (stridx(ls.str, ls.curr) == '.') { // read fractional part
@@ -172,25 +242,22 @@ namespace json {
     // read exponential part
     if (stridx(ls.str, ls.curr) == 'e' || stridx(ls.str, ls.curr) == 'E') {
       ls.curr++;
-      bool minus = false;
       constexpr int MAX_EXPONENTIAL = 308;
       unsigned int exponential = 0;
-
-      switch (stridx(ls.str, ls.curr)) {
-        case '-': ls.curr++; minus = true; break;
-        case '+': ls.curr++; minus = false; break;
-      }
+      bool minus = stridx(ls.str, ls.curr) == '-';
+      ls.curr += minus || stridx(ls.str, ls.curr) == '+';
 
       if (!isdigit(stridx(ls.str, ls.curr)))
         throw std::runtime_error("[tokenize_float] exponential missing integer part");
 
       for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
         exponential = exponential * 10 + (ls.str[ls.curr] - '0');
-        if (exponential > MAX_EXPONENTIAL)
-          throw std::runtime_error("[tokenize_float] number too large");
       }
 
-      if (minus) {
+      if (exponential > MAX_EXPONENTIAL)
+        throw std::runtime_error("[tokenize_float] number too large");
+
+      if (minus) { 
         for (; exponential != 0; exponential--) num *= 0.1;
       } else {
         for (; exponential != 0; exponential--) {
@@ -203,60 +270,6 @@ namespace json {
 
     num *= sign;
     return Token(TokenType::NUMBER, JSONNumber(num));
-  }
-
-  /**
-   * looks ahead to determine if an int or a float shall be parsed
-   * 
-   * Also handles many parsing errors, which largely simplifies the
-   * implementation of tokenize_int and tokenize_float
-  */
-  Token tokenize_number(LexState& ls) {
-    std::size_t lookahead = ls.curr;
-
-    if (ls.str[lookahead] == '-') lookahead++;
-
-    if ((stridx(ls.str, lookahead)) == '.')
-      throw std::runtime_error("[tokenize_number] decimal with no integer part");
-
-    if (!isdigit(stridx(ls.str, lookahead)))
-      throw std::runtime_error("[tokenize_number] minus with no integer part");
-
-    if (ls.str[lookahead] == '0' && isdigit(stridx(ls.str, lookahead + 1)))
-      throw std::runtime_error("[tokenize_number] leading zeros detected"); 
-
-    for (; lookahead < ls.size && isdigit(ls.str[lookahead]); lookahead++);
-
-    if (stridx(ls.str, lookahead) == '.') {
-      lookahead++;
-      if (!isdigit(stridx(ls.str, lookahead)))
-        throw std::runtime_error("[tokenize_number] trailing decimal point");
-      return tokenize_float(ls);
-    }
-
-    if (stridx(ls.str, lookahead) == 'e' || stridx(ls.str, lookahead) == 'E') {
-      lookahead++;
-
-      /**
-       * I decided to not bother for missing integer parts on the exponentials here,
-       * as tokenize_float would need to check anyway since there is an early
-       * exit whenever a decimal point is detected. Therefore, both tokenize_int
-       * and tokenize_float check for a missing integer part
-      */
-      switch (stridx(ls.str, lookahead)) {
-        case '-': return tokenize_float(ls);
-        case '+':
-        case '0': case '1': case '2': case '3':
-        case '4': case '5': case '6': case '7': case '8':
-        case '9': return tokenize_int(ls);
-        default: throw std::runtime_error("Exponential part followed by "
-            "invalid character: " + char_code_str(stridx(ls.str, lookahead)));
-      }
-    }
-
-    // fall through to int, as no decimal point was found, nor was any
-    // negative exponential part found
-    return tokenize_int(ls);
   }
 
   Token tokenize_string(LexState& ls) {
@@ -300,7 +313,7 @@ namespace json {
               "Unescaped backslash");
             default:
               throw std::runtime_error("[json::tokenize_string] "
-              "Invalid escape sequence: \\" + char_code_str(next));
+              "Invalid escape sequence: \\" + ascii_str(next));
           }
         } break; // case '\\':
         case '\r':
@@ -316,7 +329,7 @@ namespace json {
           if (std::iscntrl(ch) && ch != 127) 
             throw std::runtime_error("[json::tokenize_string] "
             " Unescaped control character inside of string: " +
-            char_code_str(ch));
+            ascii_str(ch) + "(" + ")");
             
           ls.curr++;
         }
@@ -358,12 +371,19 @@ namespace json {
     return i == check.length();
   }
 
+  std::string sec_string(std::string_view v, std::size_t start, std::size_t end) {
+    std::stringstream ss;
+    ss << "(" << linebef(v, start, 30) <<
+      "->" << interpret_utf8char(v.substr(start, end - start)) << "<-" << linetoend(v, end, 30) << ")";
+    return ss.str();
+  }
+
   
 
   
 
   /* Used mainly for reporting char codes in errors which may have control characters */
-  std::string char_code_str(char ch) {
+  const char* ascii_cstr(char ch) {
     static const char* ascii_decs[256] = {"NUL","SOH","STX","ETX","EOT","ENQ",
       "ACK","\\a","\\b","\\t","\\n","\\v","\\f","\\r","SO","SI","DLE","DC1","DC2",
       "DC3","DC4","NAK","SYN","ETB","CAN","EM","SUB","ESC","FS","GS","RS","US",

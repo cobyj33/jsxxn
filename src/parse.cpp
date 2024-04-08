@@ -9,7 +9,7 @@ namespace json {
     std::vector<Token> tokens;
     std::size_t curr;
     const std::size_t size;
-    ParserState(std::string_view v) : tokens(tokenize(v)), curr(0), size(v.length()) {}
+    ParserState(std::string_view v) : tokens(std::move(tokenize(v))), curr(0), size(v.length()) {}
   };
 
   JSON parse_value(ParserState& ps, unsigned int depth);
@@ -22,7 +22,7 @@ namespace json {
 
     JSON value = parse_value(ps, 0);
     if (ps.curr <= ps.size && ps.tokens[ps.curr].type != TokenType::END_OF_FILE)
-        throw std::runtime_error("[json::JSONParser::parse] Did not read "
+        throw std::runtime_error("[json::parse] Did not read "
           "all tokens as a value. ( Next Token: ( " +
           json_token_str(ps.tokens[ps.curr]) + " )");
 
@@ -57,7 +57,7 @@ namespace json {
 
   JSON parse_value(ParserState& ps, unsigned int depth) {
     if (depth > JSON_IMPL_MAX_NESTING_DEPTH)
-      throw std::runtime_error("[json::JSONParser::parse_value] Exceeded "
+      throw std::runtime_error("[json::parse_value] Exceeded "
       "max nesting depth of " + std::to_string(JSON_IMPL_MAX_NESTING_DEPTH));
 
     switch (ps.tokens[ps.curr].type) {
@@ -100,12 +100,12 @@ namespace json {
     while (ps.tokens[ps.curr].type != TokenType::RIGHT_BRACKET) {
       switch (ps.tokens[ps.curr].type) {
         case TokenType::END_OF_FILE:
-          throw std::runtime_error("[json::JSONParser::parse_array] Unclosed Array. Reached END_OF_FILE");
+          throw std::runtime_error("[json::parse_array] Unclosed Array. Reached END_OF_FILE");
         case TokenType::COMMA: {
           ps.curr++;
           arr.push_back(std::move(parse_value(ps, depth + 1)));
         } break;
-        default: throw std::runtime_error("[json::JSONParser::parse_array] "
+        default: throw std::runtime_error("[json::parse_array] "
           "Unexpected token hit, comma (\",\") or right bracket (\"]\") expected: " +
           json_token_str(ps.tokens[ps.curr]));
       }

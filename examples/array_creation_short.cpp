@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     "words",
     nullptr,
     -12,
-    std::string_view("string_view"),
+    std::string_view("string_view"), // this would just be implicitly casted to std::string
     json::JSONArray({ "nested", "initializer", "list", "inside"}),
     json::JSONObject({
       {"object", "test"},
@@ -57,7 +57,8 @@ int main(int argc, char** argv) {
 
   std::cout << json::serialize(arr) << std::endl;
 
-  // This, however, does not compile, as the std::initializer_list constructor 
+  // This, however, does not compile when we declare arr to be json::JSON
+  // instead of json::JSONArray, as the std::initializer_list constructor 
   // on json::JSON does not exist. You can try uncommenting and building
   // again to check
   //

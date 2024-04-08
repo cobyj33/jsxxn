@@ -18,29 +18,29 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  int anysuccess = 0;
+  int exitcode = EXIT_FAILURE;
 
   if (piped) { // pipe or something else
     std::string json_str;
     std::string line;
-    while (std::getline(std::cin, line)) {
-      json_str += line;
-    }
+    while (std::getline(std::cin, line)) json_str += line;
 
     try {
       json::JSON parsed = json::parse(json_str);
       std::cout << json::serialize(parsed) << std::endl;
-      anysuccess = 1;
+      exitcode = EXIT_SUCCESS;
     } catch (const std::runtime_error& err) {
-      std::cerr << err.what() << std::endl;
+      std::cerr << "Error while parsing piped input: " << err.what() << std::endl;
     }
   }
 
 
   for (int i = 1; i < argc; i++) {
     std::string json_str;
+    bool is_json_file = false;
     try {
       json_str = read_file_to_string(argv[i]);
+      is_json_file = true;
     } catch (const std::runtime_error& err) {
       json_str = std::string(argv[i]);
     }
@@ -48,13 +48,19 @@ int main(int argc, char** argv) {
     try {
       json::JSON parsed = json::parse(json_str);
       std::cout << json::serialize(parsed) << std::endl;
-      anysuccess = 1;
+      exitcode = EXIT_SUCCESS;
     } catch (const std::runtime_error& err) {
-      std::cerr << err.what() << std::endl;
+      if (is_json_file) {
+        std::cerr << "Error while parsing json file '" << argv[i] << "':\n\t" <<
+          err.what() << std::endl; 
+      } else {
+        std::cerr << "Error while parsing json input at argument #" << i << ":"
+          << "\n\t" << err.what() << std::endl;
+      }
     }
   }
 
-  return anysuccess ? EXIT_SUCCESS : EXIT_FAILURE;
+  return exitcode;
   
 }
 
@@ -65,6 +71,10 @@ std::string read_file_to_string(std::string path) {
 
   std::string res;
   std::string line;
-  while (std::getline(file, line)) res += line + '\n';
+  while (std::getline(file, line)) {
+    res += line;
+    res += '\n';
+  }
+
   return res;
 }
