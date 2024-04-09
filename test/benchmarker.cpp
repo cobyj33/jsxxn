@@ -54,8 +54,8 @@ struct benchmark_data {
   std::chrono::nanoseconds deq_t = BENCHMARK_ERR_TIME;
 };
 
-#define TIMESTAMP(e) std::chrono::time_point e = std::chrono::steady_clock::now()
-#define SINCE(tp) (std::chrono::steady_clock::now() - (tp))
+#define TIMESTAMP(e) std::chrono::time_point e = std::chrono::high_resolution_clock::now()
+#define SINCE(tp) (std::chrono::high_resolution_clock::now() - (tp))
 #define DURATION(tp1, tp2) ((tp1) - (tp2))
 
 
