@@ -318,13 +318,19 @@ namespace json {
             case '\0':
               throw std::runtime_error("[json::tokenize_string] "
               "Unescaped backslash");
-            default:
-              throw std::runtime_error("[json::tokenize_string] "
-              "Invalid escape sequence: \\" + ascii_str(next));
+            default: {
+              std::stringstream ss;
+              ss << "[json::tokenize_string] Invalid escape sequence: \\" 
+                << utf8charstr(utf8gat(ls.str, ls.curr + 1)) << " "
+                << sec_string(ls.str, ls.curr + 1);
+
+              throw std::runtime_error(ss.str());
+            }
           }
         } break; // case '\\':
         case '\r':
-        case '\n': throw std::runtime_error("[json::tokenize_string] Unclosed String");
+        case '\n': throw std::runtime_error("[json::tokenize_string] Unclosed "
+                          "String " + sec_string(ls.str, ls.curr));
         default: {
           /**
            * "All Unicode characters may be placed within the
@@ -336,14 +342,16 @@ namespace json {
           if (std::iscntrl(ch) && ch != 127) 
             throw std::runtime_error("[json::tokenize_string] "
             " Unescaped control character inside of string: " +
-            ascii_str(ch) + "(" + ")");
+            ascii_str(ch) + sec_string(ls.str, ls.curr));
             
           ls.curr++;
         }
       }
     }
 
-    if (!closed) throw std::runtime_error("[json::tokenize_string] Unclosed String");
+    if (!closed)
+      throw std::runtime_error("[json::tokenize_string] Unclosed String" + 
+                                            sec_string(ls.str, ls.curr));
     return Token(TokenType::STRING, ls.str.substr(start, ls.curr - start - 1));
   }
 
