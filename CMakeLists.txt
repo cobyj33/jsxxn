@@ -12,12 +12,14 @@ if (MSVC)
 endif()
 
 OPTION(JSON_ENABLE_GPROF "Set CMAKE_BUILD_TYPE to \"Debug\" and add -pg to compiler flags (Default OFF)" OFF)
+OPTION(JSON_BUILD_EXAMPLES "Build Examples" OFF)
+OPTION(JSON_BUILD_TESTS "Build Tests" OFF)
 
 if(JSON_ENABLE_GPROF AND ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")))
-  message("Enabling gprof flags...")
+  message("[json] Enabling gprof flags...")
 
   if (NOT (CMAKE_BUILD_TYPE STREQUAL "Debug"))
-    message("Enabling gprof flags: Setting CMAKE_BUILD_TYPE to Debug")
+    message("[json] Enabling gprof flags: Setting CMAKE_BUILD_TYPE to Debug")
     set(CMAKE_BUILD_TYPE Debug)
   endif()
 
@@ -44,5 +46,12 @@ add_library(json STATIC ${JSON_SOURCE_FILES})
 target_include_directories(json PUBLIC ${JSON_INCLUDE_DIRECTORY} PRIVATE ${JSON_IMPL_INCLUDE_DIRECTORY})
 target_compile_options(json PUBLIC ${JSON_COMPILE_OPTIONS})
 
-add_subdirectory(${JSON_EXAMPLES_DIRECTORY})
-add_subdirectory(${JSON_TEST_DIRECTORY})
+if (JSON_BUILD_EXAMPLES)
+  message("[json] Entering Examples Directory")
+  add_subdirectory(${JSON_EXAMPLES_DIRECTORY})
+endif()
+
+if (JSON_BUILD_TESTS)
+  message("[json] Entering Tests Directory")
+  add_subdirectory(${JSON_TEST_DIRECTORY})
+  endif()

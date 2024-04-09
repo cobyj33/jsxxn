@@ -8,8 +8,7 @@ namespace json {
   struct ParserState {
     std::vector<Token> tokens;
     std::size_t curr;
-    const std::size_t size;
-    ParserState(std::string_view v) : tokens(std::move(tokenize(v))), curr(0), size(v.length()) {}
+    ParserState(std::string_view v) : tokens(std::move(tokenize(v))), curr(0) {}
   };
 
   JSON parse_value(ParserState& ps, unsigned int depth);
@@ -21,7 +20,7 @@ namespace json {
     ParserState ps(str);
 
     JSON value = parse_value(ps, 0);
-    if (ps.curr <= ps.size && ps.tokens[ps.curr].type != TokenType::END_OF_FILE)
+    if (ps.curr <= ps.tokens.size() && ps.tokens[ps.curr].type != TokenType::END_OF_FILE)
         throw std::runtime_error("[json::parse] Did not read "
           "all tokens as a value. ( Next Token: ( " +
           json_token_str(ps.tokens[ps.curr]) + " )");
