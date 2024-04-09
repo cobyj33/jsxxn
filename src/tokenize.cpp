@@ -28,7 +28,11 @@ namespace json {
   }
 
   inline std::string sec_string(std::string_view v, std::size_t ind) {
-    return sec_string(v, utf8beg(v, ind), utf8gnext(v, ind));
+    return sec_string(v, ind, ind);
+  }
+
+  std::string lexerr(LexState ls, const std::string& message) {
+    return message + ": " + sec_string(ls.str, ls.curr);
   }
 
   inline std::string_view interpret_utf8char(std::string_view utf8char) {
@@ -113,23 +117,28 @@ namespace json {
    * tokenize_int or tokenize_float
   */
   Token tokenize_number(LexState& ls) {
+    const std::size_t start = ls.curr;
     std::size_t lookahead = ls.curr;
     lookahead += ls.str[lookahead] == '-'; // consume -
 
     if ((stridx(ls.str, lookahead)) == '.')
-      throw std::runtime_error("[tokenize_number] decimal with no integer part");
+      throw std::runtime_error("[tokenize_number] decimal with no integer part:"
+                                " " + sec_string(ls.str, start, lookahead));
 
     if (!isdigit(stridx(ls.str, lookahead)))
-      throw std::runtime_error("[tokenize_number] no integer part");
+      throw std::runtime_error("[tokenize_number] no integer part: " +
+                                    sec_string(ls.str, start, lookahead));
 
     if (ls.str[lookahead] == '0' && isdigit(stridx(ls.str, lookahead + 1)))
-      throw std::runtime_error("[tokenize_number] leading zeros detected"); 
+      throw std::runtime_error("[tokenize_number] leading zeros detected: " + 
+                                      sec_string(ls.str, start, lookahead + 1)); 
 
     for (; lookahead < ls.size && isdigit(ls.str[lookahead]); lookahead++); // consume integer part
 
     if (stridx(ls.str, lookahead) == '.') { // float handling
       if (!isdigit(stridx(ls.str, lookahead + 1)))
-        throw std::runtime_error("[tokenize_number] trailing decimal point");
+        throw std::runtime_error("[tokenize_number] trailing decimal point" +
+                                          sec_string(ls.str, start, lookahead));
       return tokenize_float(ls);
     }
 
@@ -148,10 +157,11 @@ namespace json {
         case '0': case '1': case '2': case '3':
         case '4': case '5': case '6': case '7': case '8':
         case '9': return tokenize_int(ls);
-        case '\0': throw std::runtime_error("[tokenize_number] " // handle null from stridx
-          "Exponential part followed by NUL");
+        case '\0': throw std::runtime_error("[tokenize_number] Exponential part" // handle null from stridx
+                  " followed by NUL: " + sec_string(ls.str, start, lookahead));
         default: throw std::runtime_error("Exponential part followed by "
-            "invalid character: " + utf8charstr(utf8gat(ls.str, lookahead)));
+            "invalid character: " + utf8charstr(utf8gat(ls.str, lookahead)) +
+            ": " + sec_string(ls.str, start, lookahead));
       }
     }
 
@@ -175,9 +185,10 @@ namespace json {
   */
   Token tokenize_int(LexState& ls) {
     const std::size_t start = ls.curr; // 
-    std::int64_t num = 0L;
+    std::int64_t num = 0LL;
 
-    std::int64_t sign = 1 * (-1 * (ls.str[ls.curr] == '-'));
+    // std::int64_t sign = 1LL * (-1LL * (ls.str[ls.curr] == '-'));
+    std::int64_t sign = 1LL + (-2LL * (ls.str[ls.curr] == '-'));
     ls.curr += ls.str[ls.curr] == '-';
 
     for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
@@ -201,7 +212,8 @@ namespace json {
       ls.curr += stridx(ls.str, ls.curr) == '+';
 
       if (!isdigit(stridx(ls.str, ls.curr)))
-        throw std::runtime_error("[tokenize_int] exponential missing integer part");
+        throw std::runtime_error("[tokenize_int] exponential missing integer "
+                                "part: " + sec_string(ls.str, start, ls.curr));
 
       for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
         exponential = exponential * 10 + (ls.str[ls.curr] - '0');
@@ -226,14 +238,17 @@ namespace json {
   }
 
   Token tokenize_float(LexState& ls) {
+    const std::size_t start = ls.curr;
     double num = 0.0;
-    int sign = 1.0 * (-1.0 * (ls.str[ls.curr] == '-'));
+    int sign = 1 + (-2 * (ls.str[ls.curr] == '-'));
     ls.curr += ls.str[ls.curr] == '-'; 
 
     // read integer part
     for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
       double digit = (ls.str[ls.curr] - '0');
-      if ((DBL_MAX - digit) / 10.0 <= num) throw std::runtime_error("[tokenize_float] number too large");
+      if ((DBL_MAX - digit) / 10.0 <= num)
+        throw std::runtime_error("[tokenize_float] number too large: " +
+                                  sec_string(ls.str, start, ls.curr));
       num = num * 10.0 + digit;
     }
 
@@ -255,21 +270,24 @@ namespace json {
       ls.curr += minus || stridx(ls.str, ls.curr) == '+';
 
       if (!isdigit(stridx(ls.str, ls.curr)))
-        throw std::runtime_error("[tokenize_float] exponential missing integer part");
+        throw std::runtime_error("[tokenize_float] exponential missing integer "
+                                " part: " + sec_string(ls.str, start, ls.curr));
 
       for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
         exponential = exponential * 10 + (ls.str[ls.curr] - '0');
       }
 
       if (exponential > MAX_EXPONENTIAL)
-        throw std::runtime_error("[tokenize_float] number too large");
+        throw std::runtime_error("[tokenize_float] number too large: " +
+                                  sec_string(ls.str, start, ls.curr));
 
       if (minus) { 
         for (; exponential != 0; exponential--) num *= 0.1;
       } else {
         for (; exponential != 0; exponential--) {
           if (DBL_MAX / 10 <= num)
-            throw std::runtime_error("[tokenize_float] number too large");
+            throw std::runtime_error("[tokenize_float] number too large: " +
+                                      sec_string(ls.str, start, ls.curr));
           num *= 10;
         }
       }
@@ -301,36 +319,35 @@ namespace json {
             case 'r': 
             case 't': ls.curr += 2; break; 
             case 'u': { // unicode :(
+              const std::size_t ustart = ls.curr;
               ls.curr += 2; // consume backslash and u
 
               if (ls.curr + 4 > ls.size)
                 throw std::runtime_error("[json::tokenize_string] "
-                "Incomplete unicode hex value");
+                                    "Incomplete unicode hex value: "
+                                    + sec_string(ls.str, ustart, ls.size));
 
               for (std::size_t i = 0; i < 4; i++) {
                 if (!std::isxdigit(ls.str[ls.curr + i]))
-                  throw std::runtime_error("[json::tokenize_string] Incomplete "
-                  "unicode hex value");
+                  throw std::runtime_error("[json::tokenize_string] Invalid "
+                  "unicode hex value: all 4 characters must be hexidecimal "
+                  "digits: " + sec_string(ls.str, ustart, ls.curr + i));
               }
               
               ls.curr += 4;
             } break;
             case '\0':
-              throw std::runtime_error("[json::tokenize_string] "
-              "Unescaped backslash");
-            default: {
-              std::stringstream ss;
-              ss << "[json::tokenize_string] Invalid escape sequence: \\" 
-                << utf8charstr(utf8gat(ls.str, ls.curr + 1)) << " "
-                << sec_string(ls.str, ls.curr + 1);
-
-              throw std::runtime_error(ss.str());
-            }
+              throw std::runtime_error("[json::tokenize_string] Unescaped "
+                "backslash: " + sec_string(ls.str, ls.curr, ls.curr + 1));
+            default:
+              throw std::runtime_error("[json::tokenize_string] Invalid escape "
+                "sequence: " + utf8charstr(utf8gat(ls.str, ls.curr + 1)) + 
+                sec_string(ls.str, ls.curr + 1));
           }
         } break; // case '\\':
         case '\r':
         case '\n': throw std::runtime_error("[json::tokenize_string] Unclosed "
-                          "String " + sec_string(ls.str, ls.curr));
+                          "String: " + sec_string(ls.str, start, ls.curr));
         default: {
           /**
            * "All Unicode characters may be placed within the
@@ -342,7 +359,7 @@ namespace json {
           if (std::iscntrl(ch) && ch != 127) 
             throw std::runtime_error("[json::tokenize_string] "
             " Unescaped control character inside of string: " +
-            ascii_str(ch) + sec_string(ls.str, ls.curr));
+            ascii_str(ch) + ": " + sec_string(ls.str, ls.curr));
             
           ls.curr++;
         }
@@ -351,19 +368,21 @@ namespace json {
 
     if (!closed)
       throw std::runtime_error("[json::tokenize_string] Unclosed String" + 
-                                            sec_string(ls.str, ls.curr));
+                                      sec_string(ls.str, start, ls.curr));
     return Token(TokenType::STRING, ls.str.substr(start, ls.curr - start - 1));
   }
 
   void consume_comments(LexState& ls) {
-    switch (ls.curr + 1 < ls.size ? ls.str[ls.curr + 1] : '\0') {
+    switch (stridx(ls.str, ls.curr + 1)) {
       case '/': for (; ls.curr < ls.size && ls.str[ls.curr] != '\n'; ls.curr++); break;
       case '*': for (; ls.curr + 1 < ls.size; ls.curr++) {
         if (ls.str[ls.curr] == '*' && ls.str[ls.curr+1] == '/') {
           ls.curr += 2; break;
         }
       } break;
-      default: throw std::runtime_error("[json::consume_comments] Unhandled slash");
+      default:
+        throw std::runtime_error("[json::consume_comments] Unhandled slash: " +
+                                  sec_string(ls.str, ls.curr));
     }
   }
 
@@ -374,8 +393,8 @@ namespace json {
     }
 
     throw std::runtime_error("[consume_keyword] Tried to match " +
-      std::string(keyword) + " at index" + std::to_string(ls.curr) +
-      ". No match. ");
+      std::string(keyword) + " at index " + std::to_string(ls.curr) +
+      ". No match: " + sec_string(ls.str, ls.curr, ls.curr + keyword.length()));
   }
 
   bool exact_match(std::string_view str, std::string_view check, std::size_t start) {
@@ -386,8 +405,11 @@ namespace json {
 
   std::string sec_string(std::string_view v, std::size_t start, std::size_t end) {
     std::stringstream ss;
-    ss << "(" << linebef(v, start, 30) <<
-      "->" << interpret_utf8char(v.substr(start, end - start)) << "<-" << linetoend(v, end, 30) << ")";
+    start = utf8beg(v, start);
+    end = utf8gnext(v, end);
+    ss << "(" << linebef(v, start, 40) <<
+      "->" << interpret_utf8char(v.substr(start, end - start)) << "<-" 
+      << linetoend(v, end, 40) << ")";
     return ss.str();
   }
 

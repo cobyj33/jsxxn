@@ -99,8 +99,9 @@ namespace json {
    * Returns the start of the next grapheme in the string view starting from ind
   */
   inline std::size_t utf8gnext(std::string_view v, std::size_t ind) {
+    ind = std::min(ind, v.length() - 1);
     ind++;
-    while (!isutf8gstart(v[ind])) ind++;
+    while (!isutf8gstart(v[ind]) && ind < v.length()) ind++;
     return ind;
   }
 
@@ -108,6 +109,7 @@ namespace json {
    * Returns the beginning of the utf-8 grapheme in the string view at ind 
   */
   inline std::size_t utf8beg(std::string_view v, std::size_t ind) {
+    ind = std::min(ind, v.length() - 1);
     while (!isutf8gstart(v[ind]) && ind > 0) ind--;
     return ind;
   }
@@ -218,7 +220,7 @@ namespace json {
   }
 
   inline std::string_view linetoend(std::string_view v, std::size_t ind) {
-    std::size_t end = ind + 1;
+    std::size_t end = ind;
     while (!(v[end] == '\r' || v[end] == '\n') && end < v.length()) end++;
     return v.substr(ind, end - ind);
   }
