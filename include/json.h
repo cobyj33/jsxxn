@@ -121,17 +121,42 @@ namespace json {
       void push_back(JSON&& json);
       JSON& operator[](std::size_t idx);
       JSON& at(std::size_t idx);
+      JSON& front();
+      JSON& back();
+      void pop_back();
+      const JSON& front() const;
+      const JSON& back() const;
+
+      #if __cplusplus > 201703L
+      template< class... Args >
+      constexpr JSON& emplace_back(Args&&... args);
+      #elif __cplusplus == 201703L
+      template< class... Args >
+      JSON& emplace_back(Args&&... args);
+      #endif
+
+      #if __cplusplus > 201703L
+      template< class... Args >
+      constexpr JSON& emplace(std::size_t i, Args&&... args);
+      #elif __cplusplus == 201703L
+      template< class... Args >
+      JSON& emplace(std::size_t i, Args&&... args);
+      #endif
+
 
       // Object Methods
       json::JSONObject::size_type count(const std::string& key) const;
       json::JSONObject::size_type count(std::string_view key) const;
       bool contains(const std::string& key) const;
       bool contains(std::string_view key) const;
-      bool containsValue(std::string_view key) const;
       JSON& operator[](const std::string& key);
       JSON& operator[](std::string_view key);
       JSON& at(const std::string& key);
       JSON& at(std::string_view key);
+      
+      template< class... Args >
+      std::pair<JSONObject::iterator, bool> emplace(Args&&... args);
+      
   };
 };
 

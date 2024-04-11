@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <string_view>
+#include <utility>
 
 #include <cstddef>
 #include <cstdint>
@@ -225,6 +226,14 @@ namespace json {
     "type");
   }
 
+  template< class... Args >
+  std::pair<JSONObject::iterator, bool> JSON::emplace(Args&&... args) {
+    if (JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return map->emplace(std::forward<Args>(args)...);
+    throw std::runtime_error("[JSON::count] emplacing pair on non-object "
+    "type");
+  }
+
 
   JSON& JSON::operator[](std::size_t idx) {
     if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
@@ -252,6 +261,65 @@ namespace json {
       return;
     }
     throw std::runtime_error("[JSON::push_back] pushing on non-array type"); 
+  }
+
+  JSON& JSON::front() {
+    if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->front();
+    throw std::runtime_error("[JSON::front] getting front of non-array type");
+  }
+
+  JSON& JSON::back() {
+    if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->back();
+    throw std::runtime_error("[JSON::back] getting back of non-array type");
+  }
+
+  void JSON::pop_back() {
+    if (JSONArray* arr = std::get_if<JSONArray>(&this->value)) {
+      arr->pop_back();
+      return;
+    }
+    throw std::runtime_error("[JSON::pop_back] popping back of non-array type");
+  }
+
+  const JSON& JSON::front() const {
+    if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->front();
+    throw std::runtime_error("[JSON::front] getting front of non-array type");
+  } 
+
+  const JSON& JSON::back() const {
+    if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->back();
+    throw std::runtime_error("[JSON::back] getting back of non-array type");
+  }
+
+  #if __cplusplus > 201703L
+  template< class... Args >
+  constexpr JSON& JSON::emplace_back(Args&&... args) {
+  #elif __cplusplus == 201703L
+  template< class... Args >
+  JSON& JSON::emplace_back(Args&&... args) {
+  #endif
+    if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->emplace_back(std::forward<Args>(args)...);
+    throw std::runtime_error("[JSON::emplace_back] emplacing in non-array type");
+  }
+
+  #if __cplusplus > 201703L
+  template< class... Args >
+  constexpr JSON& JSON::emplace(std::size_t i, Args&&... args) {
+  #elif __cplusplus == 201703L
+  template< class... Args >
+  JSON& JSON::emplace(std::size_t i, Args&&... args) {
+  #endif
+    if (JSONArray* arr = std::get_if<JSONArray>(&this->value)) {
+      if (i > arr->size())
+        throw std::runtime_error("[JSON::emplace] emplace out of bounds");
+      return arr->emplace(arr->begin() + i, std::forward<Args>(args)...);
+    }
+    throw std::runtime_error("[JSON::emplace] emplacing in non-array type");
   }
 
 };

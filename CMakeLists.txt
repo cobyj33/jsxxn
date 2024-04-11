@@ -1,10 +1,17 @@
 cmake_minimum_required(VERSION 3.7)
 
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 
 project(json LANGUAGES CXX
 VERSION 0.0.0)
+
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
+if(NOT COMPILER_SUPPORTS_CXX17)
+  message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
 
 set(JSON_COMPILE_OPTIONS -Wall -Wextra -Wpedantic)
 if (MSVC)
@@ -30,7 +37,7 @@ endif()
 
 set(JSON_EXAMPLES_DIRECTORY ${CMAKE_SOURCE_DIR}/examples)
 set(JSON_SRC_DIRECTORY ${CMAKE_SOURCE_DIR}/src)
-set(JSON_INCLUDE_DIRECTORY ${JSON_SRC_DIRECTORY} ${CMAKE_SOURCE_DIR}/include)
+set(JSON_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/include)
 set(JSON_IMPL_INCLUDE_DIRECTORY ${JSON_SRC_DIRECTORY})
 set(JSON_TEST_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
 
