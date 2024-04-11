@@ -268,7 +268,9 @@ namespace json {
 
   Token nextToken(std::string_view str, std::size_t start);
 
-  // assumes a valid json string
+  /**
+   * assumes a valid json string
+  */
   std::string json_string_resolve(std::string_view v);
   
   const char* json_token_type_cstr(TokenType tokenType);

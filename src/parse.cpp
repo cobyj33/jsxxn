@@ -11,6 +11,17 @@ namespace json {
     ParserState(std::string_view v) : tokens(std::move(tokenize(v))), curr(0) {}
   };
 
+  std::string err_not_single_val(Token nextToken);
+  std::string err_max_nest();
+  std::string err_expect_json_val(Token token);
+  std::string err_expect_colon(Token token);
+  std::string err_expect_str_key(Token token);
+  std::string err_unclsed_arr();
+  std::string err_unclsed_obj();
+  std::string err_unex_sep_token(Token token);
+  std::string err_unex_arr_token(Token token);
+  std::string err_got_eof();
+
   JSON parse_value(ParserState& ps, unsigned int depth);
   JSON parse_array(ParserState& ps, unsigned int depth);
   JSON parse_object(ParserState& ps, unsigned int depth);
@@ -21,9 +32,7 @@ namespace json {
 
     JSON value = parse_value(ps, 0);
     if (ps.curr <= ps.tokens.size() && ps.tokens[ps.curr].type != TokenType::END_OF_FILE)
-        throw std::runtime_error("[json::parse] Did not read "
-          "all tokens as a value. ( Next Token: ( " +
-          json_token_str(ps.tokens[ps.curr]) + " )");
+        throw std::runtime_error(err_not_single_val(ps.tokens[ps.curr]));
 
     return value;
   }
@@ -56,8 +65,7 @@ namespace json {
 
   JSON parse_value(ParserState& ps, unsigned int depth) {
     if (depth > JSON_IMPL_MAX_NESTING_DEPTH)
-      throw std::runtime_error("[json::parse_value] Exceeded "
-      "max nesting depth of " + std::to_string(JSON_IMPL_MAX_NESTING_DEPTH));
+      throw std::runtime_error(err_max_nest());
 
     switch (ps.tokens[ps.curr].type) {
       case TokenType::LEFT_BRACE: return parse_object(ps, depth);
@@ -68,17 +76,13 @@ namespace json {
       case TokenType::NUMBER: return JSON(token_lit_to_json_lit(ps.tokens[ps.curr++].val));
       case TokenType::STRING: return JSON(token_lit_to_json_lit(ps.tokens[ps.curr++].val));
 
-      case TokenType::END_OF_FILE: throw std::runtime_error("[json::parse] expected value, got END_OF_FILE");
-
+      case TokenType::END_OF_FILE: throw std::runtime_error(err_got_eof());
       case TokenType::RIGHT_BRACE: 
       case TokenType::RIGHT_BRACKET:
       case TokenType::COLON:
       case TokenType::COMMA: // error
       default:
-        throw std::runtime_error("[json::parse] expected a JSON value, "
-        "got invalid token of type " +
-        json_token_type_str(ps.tokens[ps.curr].type) +
-        " ( " + json_token_str(ps.tokens[ps.curr] ) + " ) ");
+        throw std::runtime_error(err_expect_json_val(ps.tokens[ps.curr]));
     }
   }
 
@@ -99,14 +103,12 @@ namespace json {
     while (ps.tokens[ps.curr].type != TokenType::RIGHT_BRACKET) {
       switch (ps.tokens[ps.curr].type) {
         case TokenType::END_OF_FILE:
-          throw std::runtime_error("[json::parse_array] Unclosed Array. Reached END_OF_FILE");
+          throw std::runtime_error(err_unclsed_arr());
         case TokenType::COMMA: {
           ps.curr++;
           arr.push_back(std::move(parse_value(ps, depth + 1)));
         } break;
-        default: throw std::runtime_error("[json::parse_array] "
-          "Unexpected token hit, comma (\",\") or right bracket (\"]\") expected: " +
-          json_token_str(ps.tokens[ps.curr]));
+        default: throw std::runtime_error(err_unex_arr_token(ps.tokens[ps.curr]));
       }
     }
 
@@ -118,15 +120,14 @@ namespace json {
   // Grammar: STRING ":" value
   void parse_object_pair(ParserState& ps, JSON& obj, unsigned int depth) {
     if (ps.tokens[ps.curr].type != TokenType::STRING)
-      throw std::runtime_error("[parse_object_pair] found object key " +
-      json_token_str(ps.tokens[ps.curr]) + ". String expected.");
+      throw std::runtime_error(err_expect_str_key(ps.tokens[ps.curr]));
 
     std::string_view raw_key = std::get<std::string_view>(ps.tokens[ps.curr].val);
     std::string key = json_string_resolve(raw_key);
     ps.curr++;
 
     if (ps.tokens[ps.curr].type != TokenType::COLON)
-      throw std::runtime_error("[parse_object_pair] expected colon, got " + json_token_str(ps.tokens[ps.curr]));
+      throw std::runtime_error(err_expect_colon(ps.tokens[ps.curr]));
 
     ps.curr++;
     JSONObject& objval = std::get<JSONObject>(obj.value);
@@ -148,19 +149,66 @@ namespace json {
     while (ps.tokens[ps.curr].type != TokenType::RIGHT_BRACE) {
       switch (ps.tokens[ps.curr].type) {
         case TokenType::END_OF_FILE:
-          throw std::runtime_error("[json::parse_object] unclosed object");
+          throw std::runtime_error(err_unclsed_obj());
         case TokenType::COMMA: {
           ps.curr++;
           parse_object_pair(ps, obj, depth);
         } break;
-        default: throw std::runtime_error("[json::parse_object] "
-          "Unexpected separator token of type " +
-          json_token_type_str(ps.tokens[ps.curr].type) +
-          ", expected colon (\"'\"). ( " + json_token_str(ps.tokens[ps.curr]) + " )");
+        default: throw std::runtime_error(err_unex_sep_token(ps.tokens[ps.curr]));
       }
     }
 
     ps.curr++; // consume right brace
     return obj;
   }
+
+  std::string err_not_single_val(Token nextToken) {
+    return "Did not read all tokens as a value. ( Next Token: ( "
+      + json_token_str(nextToken) + " )";
+  }
+
+  std::string err_max_nest() {
+    return "Exceeded max nesting depth of " + 
+      std::to_string(JSON_IMPL_MAX_NESTING_DEPTH);
+  }
+
+  std::string err_expect_json_val(Token token) {
+    return "Expected a JSON value, "
+        "got invalid token of type " +
+        json_token_type_str(token.type) +
+        " ( " + json_token_str(token ) + " ) ";
+  }
+
+  std::string err_unclsed_arr() {
+    return "Unclosed Array. Reached END_OF_FILE";
+  }
+
+  std::string err_unclsed_obj() {
+    return "Unclosed Object. Reached END_OF_FILE";
+  }
+
+  std::string err_unex_sep_token(Token token) {
+    return "Unexpected separator token of type " +
+          json_token_type_str(token.type) +
+          ", expected colon (\"'\"). ( " + json_token_str(token) + " )";
+  }
+
+  std::string err_expect_colon(Token token) {
+    return "expected colon, got " + json_token_str(token);
+  }
+
+  std::string err_expect_str_key(Token token) {
+    return "found object key " +
+      json_token_str(token) + ". String expected.";
+  }
+
+  std::string err_got_eof() {
+    return "expected value, got END_OF_FILE";
+  }
+
+  std::string err_unex_arr_token(Token token) {
+    return "Unexpected token hit, comma (\",\") or right bracket (\"]\") "
+      "expected: " + json_token_str(token);
+  }
+
 };

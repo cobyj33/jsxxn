@@ -1,6 +1,7 @@
 #include "json_impl.h"
 
 #include <stdexcept>
+#include <cassert>
 
 namespace json {
   const char* json_value_type_str(JSONValueType jvt) {
@@ -70,8 +71,8 @@ namespace json {
     while (i < vlen) {
       switch (v[i]) {
         case '\\': {
-          char next = stridx(v, i + 1);
-          switch (next) {
+          assert(i + 1 < v.length());
+          switch (v[i + 1]) {
             case '"': ret.push_back('"'); i += 2; break; 
             case '\\': ret.push_back('\\'); i += 2; break; 
             case '/': ret.push_back('/'); i += 2; break; 
@@ -82,9 +83,13 @@ namespace json {
             case 't': ret.push_back('\t'); i += 2; break; 
             case 'u': { // unicode :(
               i += 2; // consume \u
+              assert(std::isxdigit(v[i]));
               std::uint16_t hexval = xdigit_as_u16(v[i++]);
+              assert(std::isxdigit(v[i]));
               hexval = (hexval << 4) + xdigit_as_u16(v[i++]);
+              assert(std::isxdigit(v[i]));
               hexval = (hexval << 4) + xdigit_as_u16(v[i++]);
+              assert(std::isxdigit(v[i]));
               hexval = (hexval << 4) + xdigit_as_u16(v[i++]);
               ret += u16_as_utf8(hexval);
             } break;
@@ -117,7 +122,9 @@ namespace json {
     #endif 
 
     return std::visit(overloaded {
-      [](const JSONNumber number) { return json_number_serialize(number); },
+      [](const JSONNumber number) {
+        return json_number_serialize(number);
+      },
       [](const std::nullptr_t& nptr) {
         (void)nptr;
         return std::string("null");
