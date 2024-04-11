@@ -52,6 +52,7 @@ namespace json {
   std::string json_literal_serialize(const JSONLiteral& literal);
   std::string json_number_serialize(const JSONNumber& number);
 
+  std::string stringify(const JSONValue& json);
   std::string serialize(const JSONValue& json);
   JSON parse(std::string_view str);
 
@@ -59,35 +60,26 @@ namespace json {
     public:
       JSONValue value;
 
-      JSON();
-
+      JSON(); // defaults to hold null
       JSON(JSONValueType type);
-      
       JSON(std::nullptr_t value);
-
       JSON(bool value);
-
       JSON(std::int8_t value);
       JSON(std::int16_t value);
       JSON(std::int32_t value);
       JSON(std::int64_t value);
       JSON(double value);
-      
       JSON(const char* value);
       JSON(std::string_view value);
       JSON(const std::string& value);
       JSON(std::string&& value);
-
       JSON(JSONNumber value);
       JSON(const JSONLiteral& value);
       JSON(JSONLiteral&& value);
-      
       JSON(const JSONArray& value);
       JSON(JSONArray&& value);
-
       JSON(const JSONObject& value);
       JSON(JSONObject&& value);
-
       JSON(const JSON& value);
       JSON(JSON&& value);
 

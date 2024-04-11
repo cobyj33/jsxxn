@@ -6,6 +6,7 @@
 
 namespace json {
   void serialize(const JSONValue& json, unsigned int depth, std::string& output);
+  void stringify(const JSONValue& json, unsigned int depth, std::string& output);
   void json_literal_serialize(const JSONLiteral& literal, std::string& output);
   void json_number_serialize(const JSONNumber& number, std::string& output);
   void json_string_serialize(const std::string_view str, std::string& output);
@@ -23,12 +24,19 @@ namespace json {
     return output;
   }
 
+  std::string stringify(const JSONValue& json) {
+    std::string output;
+    stringify(json, 0, output);
+    return output;
+  }
+
   std::string json_number_serialize(const JSONNumber& number) {
     return std::visit(overloaded {
       [](const std::int64_t num) { return std::to_string(num); },
       [](const double num) { return std::to_string(num); }
     }, number);
   }
+
   void json_number_serialize(const JSONNumber& number, std::string& output) {
     // we end up having to allocate a string anyway while serializing the
     // numbers... so we can just have the result of the non-capturing 
@@ -119,12 +127,12 @@ namespace json {
           output += ": "; 
           serialize(entry.second.value, depth + 1, output);
           if (i != object.size() - 1) output += ", ";
-          output += "\n";
+          output.push_back('\n');
           i++;
         }
 
         output.append(depth * 2, ' ');
-        output.append(1, '}');
+        output.push_back('}');
       },
       [&](const JSONArray& arr) {
         if (arr.size() == 0) {
@@ -137,11 +145,50 @@ namespace json {
           output.append((depth + 1) * 2, ' ');
           serialize(arr[i].value, depth + 1, output);
           if (i != arr.size() - 1) output += ", ";
-          output += "\n";
+          output.push_back('\n');
         }
 
         output.append(depth * 2, ' ');
-        output.append(1, ']');
+        output.push_back(']');
+      }
+    }, json);
+  }
+
+  void stringify(const JSONValue& json, unsigned int depth, std::string& output) {
+    if (depth > JSON_IMPL_MAX_NESTING_DEPTH) {
+      throw std::runtime_error("[json::serialize] Exceeded max nesting "
+      "depth of " + std::to_string(JSON_IMPL_MAX_NESTING_DEPTH));
+    }
+
+    std::visit(overloaded { 
+      [&](const JSONLiteral& literal) {
+        json_literal_serialize(literal, output);
+      },
+      [&](const JSONObject& object) {
+        output.push_back('{');
+
+        for (const std::pair<const std::string, JSON>& entry : object) {
+          json_string_serialize(entry.first, output); 
+          output.push_back(':'); 
+          stringify(entry.second.value, depth + 1, output);
+          output.push_back(',');
+        }
+
+        if (output[output.size() - 1] == ',')
+          output.resize(output.size() - 1);
+        output.push_back('}');
+      },
+      [&](const JSONArray& arr) {
+        output.push_back('[');
+
+        for (JSONArray::size_type i = 0; i < arr.size(); i++) {
+          stringify(arr[i].value, depth + 1, output);
+          output.push_back(',');
+        }
+
+        if (output[output.size() - 1] == ',')
+          output.resize(output.size() - 1);
+        output.push_back(']');
       }
     }, json);
   }

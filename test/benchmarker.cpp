@@ -50,7 +50,9 @@ struct benchmark_data {
   std::chrono::nanoseconds tok_t = BENCHMARK_ERR_TIME;
   std::chrono::nanoseconds par_t = BENCHMARK_ERR_TIME;
   std::chrono::nanoseconds ser_t = BENCHMARK_ERR_TIME;
-  std::chrono::nanoseconds repar_t = BENCHMARK_ERR_TIME;
+  std::chrono::nanoseconds repar_ser_t = BENCHMARK_ERR_TIME;
+  std::chrono::nanoseconds strify_t = BENCHMARK_ERR_TIME;
+  std::chrono::nanoseconds repar_strify_t = BENCHMARK_ERR_TIME;
   std::chrono::nanoseconds deq_t = BENCHMARK_ERR_TIME;
 };
 
@@ -78,13 +80,25 @@ benchmark_data benchmark(const std::string& json_str) {
     try {
       TIMESTAMP(before_reparse);
       json::JSON reparsed = json::parse(serialized);
-      data.repar_t = SINCE(before_reparse);
+      data.repar_ser_t = SINCE(before_reparse);
 
       TIMESTAMP(before_deep_equals);
       if (reparsed.equals_deep(parsed)) {
         data.deq_t = SINCE(before_deep_equals);
       }
-    } catch (const std::runtime_error& err) { return data; }
+    } catch (const std::runtime_error& err) { }
+
+    TIMESTAMP(before_stringify);
+    std::string stringified = json::stringify(parsed);
+    data.strify_t = SINCE(before_stringify);
+
+    try {
+      TIMESTAMP(before_stringify_reparse);
+      json::JSON stringify_reparse = json::parse(serialized);
+      data.repar_strify_t = SINCE(before_stringify_reparse);
+    } catch (const std::runtime_error& err) { }
+    
+    return data;
   } catch (const std::runtime_error& err) { return data; }
 
   return data;
@@ -115,8 +129,10 @@ int main(int argc, char** argv) {
     std::cout << "Tokenizing Time: " << ns_str(data.tok_t) << std::endl;
     std::cout << "Full Parse Time: " << ns_str(data.par_t) << std::endl;
     std::cout << "Serialization Time: " << ns_str(data.ser_t) << std::endl;
-    std::cout << "Full Reparse Time: " << ns_str(data.repar_t) << std::endl;
+    std::cout << "Full Reparse Time: " << ns_str(data.repar_ser_t) << std::endl;
     std::cout << "Deep Equality Time: " << ns_str(data.deq_t) << std::endl;
+    std::cout << "Stringify Time: " << ns_str(data.strify_t) << std::endl;
+    std::cout << "Stringify Full Reparse Time: " << ns_str(data.repar_strify_t) << std::endl;
     std::cout << "--------------------" << std::endl;
     std::cout << std::endl;
   }

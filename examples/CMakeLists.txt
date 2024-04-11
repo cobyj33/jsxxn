@@ -6,6 +6,10 @@ add_executable(pretty ${JSON_EXAMPLES_DIRECTORY}/pretty.cpp)
 target_link_libraries(pretty json)
 target_compile_options(pretty PRIVATE ${JSON_COMPILE_OPTIONS})
 
+add_executable(stringify ${JSON_EXAMPLES_DIRECTORY}/stringify.cpp)
+target_link_libraries(stringify json)
+target_compile_options(stringify PRIVATE ${JSON_COMPILE_OPTIONS})
+
 add_executable(object_creation ${JSON_EXAMPLES_DIRECTORY}/object_creation.cpp)
 target_link_libraries(object_creation json)
 target_compile_options(object_creation PRIVATE ${JSON_COMPILE_OPTIONS})
