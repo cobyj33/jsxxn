@@ -2,12 +2,14 @@ add_executable(reading ${JSON_EXAMPLES_DIRECTORY}/reading.cpp)
 target_link_libraries(reading json)
 target_compile_options(reading PRIVATE ${JSON_COMPILE_OPTIONS})
 
-add_executable(pretty ${JSON_EXAMPLES_DIRECTORY}/pretty.cpp)
+add_executable(pretty ${JSON_EXAMPLES_DIRECTORY}/pretty.cpp ${JSON_EXAMPLES_DIRECTORY}/printer.cpp)
 target_link_libraries(pretty json)
+target_include_directories(pretty PRIVATE ${JSON_EXAMPLES_DIRECTORY})
 target_compile_options(pretty PRIVATE ${JSON_COMPILE_OPTIONS})
 
-add_executable(stringify ${JSON_EXAMPLES_DIRECTORY}/stringify.cpp)
+add_executable(stringify ${JSON_EXAMPLES_DIRECTORY}/stringify.cpp ${JSON_EXAMPLES_DIRECTORY}/printer.cpp)
 target_link_libraries(stringify json)
+target_include_directories(stringify PRIVATE ${JSON_EXAMPLES_DIRECTORY})
 target_compile_options(stringify PRIVATE ${JSON_COMPILE_OPTIONS})
 
 add_executable(object_creation ${JSON_EXAMPLES_DIRECTORY}/object_creation.cpp)
