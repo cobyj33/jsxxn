@@ -52,7 +52,7 @@ namespace json {
       return JSONLiteral(num);
     } else if (std::holds_alternative<std::string_view>(literal)) {
       std::string_view v = std::get<std::string_view>(literal);
-      return JSONLiteral(std::move(json_string_resolve(v)));
+      return JSONLiteral(json_string_resolve(v));
     } else if (std::holds_alternative<bool>(literal)) {
       bool b = std::get<bool>(literal);
       return JSONLiteral(b);
@@ -65,7 +65,7 @@ namespace json {
       [](const JSONNumber number) { return JSONLiteral(number); },
       [](const std::nullptr_t nptr) { return JSONLiteral(nptr); },
       [](const bool boolean) { return JSONLiteral(boolean); },
-      [](const std::string_view str) { return JSONLiteral(std::move(json_string_resolve(str))); }
+      [](const std::string_view str) { return JSONLiteral(json_string_resolve(str)); }
     }, literal);
   }
 
@@ -107,13 +107,13 @@ namespace json {
     }
 
     // We know we must have a value inside of the array now.
-    arr.push_back(std::move(parse_value(ps, depth + 1)));
+    arr.push_back(parse_value(ps, depth + 1));
 
     while (ps.token.type != TokenType::RIGHT_BRACKET) {
       switch (ps.token.type) {
         case TokenType::COMMA: {
           ps.next(); // consume comma
-          arr.push_back(std::move(parse_value(ps, depth + 1)));
+          arr.push_back(parse_value(ps, depth + 1));
         } break;
         case TokenType::END_OF_FILE:
           throw std::runtime_error(err_unclsed_arr());
@@ -140,7 +140,7 @@ namespace json {
 
     ps.next(); // consume colon
     JSONObject& objval = std::get<JSONObject>(obj.value);
-    objval.emplace(std::move(key), std::move(parse_value(ps, depth + 1)));
+    objval.emplace(std::move(key), parse_value(ps, depth + 1));
   }
 
   JSON parse_object(ParserState& ps, unsigned int depth) {
