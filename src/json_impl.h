@@ -69,6 +69,8 @@ namespace json {
     return '0';
   }
 
+
+
   inline std::uint16_t xdigit_as_u16(char ch) {
     return (ch >= '0' && ch <= '9') * static_cast<std::uint16_t>(ch - '0') +
       (ch >= 'A' && ch <= 'F') * (static_cast<std::uint16_t>(ch - 'A' + 10)) +
@@ -256,17 +258,25 @@ namespace json {
   template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
   template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
+  struct LexState {
+    const std::string_view str;
+    std::size_t curr;
+    const std::size_t size;
+    LexState(std::string_view str) : str(str), curr(0), size(str.length()) {}
+  };
+
   struct Token {
     TokenType type;
     TokenLiteral val;
     Token(TokenType type, TokenLiteral val) : type(type), val(val) {}
     Token(const Token& token) : type(token.type), val(token.val) {}
     Token(Token&& token) : type(token.type), val(token.val) {}
+    void operator=(const Token& tok) { this->type = tok.type; this->val = tok.val; }
+    void operator=(Token&& tok) { this->type = tok.type; this->val = tok.val; }
   };
 
   std::vector<Token> tokenize(std::string_view str);
-
-  Token nextToken(std::string_view str, std::size_t start);
+  Token nextToken(LexState& state);
 
   /**
    * assumes a valid json string

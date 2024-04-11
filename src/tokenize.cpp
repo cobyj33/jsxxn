@@ -12,13 +12,6 @@
 
 namespace json {
 
-  struct LexState {
-    std::string_view str;
-    std::size_t curr;
-    const std::size_t size;
-    LexState(std::string_view str) : str(str), curr(0), size(str.length()) {}
-  };
-
   std::string err_unhndled_char(std::string_view v, std::size_t ind);
   std::string err_num_overflow(std::string_view v, std::size_t start, std::size_t end);
   std::string err_lead_zeros(std::string_view v, std::size_t start, std::size_t end);
@@ -69,19 +62,17 @@ namespace json {
   void consume_comments(LexState& ls);
   Token consume_keyword(LexState& ls, std::string_view keyword, TokenLiteral matched_type, TokenType matched_token_type);
 
-  std::vector<Token> tokenize(std::string_view str) {
-    std::vector<Token> res;
-    LexState ls(str);
 
+  Token nextToken(LexState& ls) {
     while (ls.curr < ls.size) {
       switch (ls.str[ls.curr]) {
-        case '{': res.push_back(Token(TokenType::LEFT_BRACE, "{")); ls.curr++; break;
-        case '}': res.push_back(Token(TokenType::RIGHT_BRACE, "}")); ls.curr++; break;
-        case ',': res.push_back(Token(TokenType::COMMA, ",")); ls.curr++; break;
-        case '[': res.push_back(Token(TokenType::LEFT_BRACKET, "[")); ls.curr++; break;
-        case ']': res.push_back(Token(TokenType::RIGHT_BRACKET, "]")); ls.curr++; break;
-        case ':': res.push_back(Token(TokenType::COLON, ":")); ls.curr++; break;
-        case '"': res.push_back(tokenize_string(ls)); break;
+        case '{': ls.curr++; return Token(TokenType::LEFT_BRACE, "{");
+        case '}': ls.curr++; return Token(TokenType::RIGHT_BRACE, "}");
+        case ',': ls.curr++; return Token(TokenType::COMMA, ",");
+        case '[': ls.curr++; return Token(TokenType::LEFT_BRACKET, "[");
+        case ']': ls.curr++; return Token(TokenType::RIGHT_BRACKET, "]");
+        case ':': ls.curr++; return Token(TokenType::COLON, ":");
+        case '"': return tokenize_string(ls);
         case '/': consume_comments(ls); break;
         case ' ':
         case '\r':
@@ -98,15 +89,28 @@ namespace json {
         case '6':
         case '7':
         case '8':
-        case '9': res.push_back(tokenize_number(ls)); break;
-        case 't': res.push_back(consume_keyword(ls, "true", TokenLiteral(true), TokenType::TRUE)); break;
-        case 'f': res.push_back(consume_keyword(ls, "false", TokenLiteral(false), TokenType::FALSE)); break;
-        case 'n': res.push_back(consume_keyword(ls, "null", TokenLiteral(nullptr), TokenType::NULLPTR)); break;
+        case '9': return tokenize_number(ls);
+        case 't': return consume_keyword(ls, "true", TokenLiteral(true), TokenType::TRUE);
+        case 'f': return consume_keyword(ls, "false", TokenLiteral(false), TokenType::FALSE);
+        case 'n': return consume_keyword(ls, "null", TokenLiteral(nullptr), TokenType::NULLPTR);
         default: throw std::runtime_error(err_unhndled_char(ls.str, ls.curr));
       }
     }
 
-    res.push_back(Token(TokenType::END_OF_FILE, nullptr));
+    return Token(TokenType::END_OF_FILE, nullptr);
+  }
+
+  std::vector<Token> tokenize(std::string_view str) {
+    std::vector<Token> res;
+    LexState ls(str);
+
+    Token token = nextToken(ls);
+    res.push_back(token);
+    while (token.type != TokenType::END_OF_FILE) {
+      token = nextToken(ls);
+      res.push_back(token); // note that we also push back eof on purpose!
+    }
+    
     return res;
   }
 
@@ -420,7 +424,7 @@ namespace json {
       "231","232","233","234","235","236","237","238","239","240","241","242",
       "243","244","245","246","247","248","249","250","251","252","253","254",
       "255"};
-    return ascii_decs[static_cast<std::uint8_t>(ch)];
+    return ascii_decs[static_cast<std::uint8_t>(ch & 0xFF)];
   }
 
   std::string err_unhndled_char(std::string_view v, std::size_t ind) {
