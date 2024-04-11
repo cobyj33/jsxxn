@@ -102,12 +102,12 @@ namespace json {
 
     while (ps.tokens[ps.curr].type != TokenType::RIGHT_BRACKET) {
       switch (ps.tokens[ps.curr].type) {
-        case TokenType::END_OF_FILE:
-          throw std::runtime_error(err_unclsed_arr());
         case TokenType::COMMA: {
           ps.curr++;
           arr.push_back(std::move(parse_value(ps, depth + 1)));
         } break;
+        case TokenType::END_OF_FILE:
+          throw std::runtime_error(err_unclsed_arr());
         default: throw std::runtime_error(err_unex_arr_token(ps.tokens[ps.curr]));
       }
     }
@@ -148,12 +148,12 @@ namespace json {
 
     while (ps.tokens[ps.curr].type != TokenType::RIGHT_BRACE) {
       switch (ps.tokens[ps.curr].type) {
-        case TokenType::END_OF_FILE:
-          throw std::runtime_error(err_unclsed_obj());
         case TokenType::COMMA: {
           ps.curr++;
           parse_object_pair(ps, obj, depth);
         } break;
+        case TokenType::END_OF_FILE:
+          throw std::runtime_error(err_unclsed_obj());
         default: throw std::runtime_error(err_unex_sep_token(ps.tokens[ps.curr]));
       }
     }

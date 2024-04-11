@@ -64,16 +64,6 @@ namespace json {
     return *this;
   }
 
-  // JSON& JSON::operator=(const JSONValue& value) {
-  //   this->value = value;
-  //   return *this;
-  // }
-
-  // JSON& JSON::operator=(JSONValue&& value) {
-  //   this->value = std::move(value);
-  //   return *this;
-  // }
-
   JSONValueType JSON::type() {
     return json_value_get_type(this->value);
   }
@@ -83,82 +73,168 @@ namespace json {
   }
 
   JSON::operator bool() {
-    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
-      if (const bool* boolean = std::get_if<bool>(literal)) {
+    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      if (const bool* boolean = std::get_if<bool>(literal))
         return *boolean;
-      }
-    }
-    throw std::runtime_error("[JSON::operator bool()]");
-
+    throw std::runtime_error("[JSON::operator bool()] cannot cast "
+      "non-bool type to bool");
   }
 
-  JSON::operator std::string() {
-    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
-      if (const std::string* str = std::get_if<std::string>(literal)) {
+  JSON::operator std::string&() {
+    if (JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      if (std::string* str = std::get_if<std::string>(literal))
         return *str;
-      }
-    }
-    throw std::runtime_error("[JSON::operator std::string()]");
+    throw std::runtime_error("[JSON::operator std::string()] cannot cast "
+    " non-string type to string");
   }
 
-  JSON::operator JSONValue() { return this->value; }
   JSON::operator JSONValue&() { return this->value; }
+
+  JSON::operator JSONArray&() {
+    if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return *arr;
+    throw std::runtime_error("[JSON::operator JSONArray&()] cannot cast "
+    "non JSONArray type to JSONArray&");
+  }
+
+  JSON::operator JSONObject&() {
+    if (JSONObject* arr = std::get_if<JSONObject>(&this->value))
+      return *arr;
+    throw std::runtime_error("[JSON::operator JSONObject&()] cannot cast "
+    "non JSONObject type to JSONObject&");
+  }
   
   JSON::operator double() {
-    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
-      if (const JSONNumber* number = std::get_if<JSONNumber>(literal)) {
+    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      if (const JSONNumber* number = std::get_if<JSONNumber>(literal))
         return std::visit(overloaded {
-          [](const std::int64_t val) { return (double)(val); },
+          [](const std::int64_t val) { return static_cast<double>(val); },
           [](const double val) { return (val); },
         }, *number);
-      }
-    }
-    throw std::runtime_error("[JSON::operator double()]");
+    throw std::runtime_error("[JSON::operator double()] cannot cast non-number "
+    "type to double");
   }
 
   JSON::operator std::int64_t() {
-    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
-      if (const JSONNumber* number = std::get_if<JSONNumber>(literal)) {
+    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      if (const JSONNumber* number = std::get_if<JSONNumber>(literal))
         return std::visit(overloaded {
           [](const std::int64_t val) { return val; },
           [](const double val) { return (std::int64_t)val; },
         }, *number);
-      }
-    }
-    throw std::runtime_error("[JSON::operator std::int64_t()]");
+    throw std::runtime_error("[JSON::operator std::int64_t()] cannot cast "
+    "non-number type to std::int64_t");
   }
 
   JSON::operator std::nullptr_t() {
-    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value)) {
-      if (std::holds_alternative<std::nullptr_t>(*literal)) {
+    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      if (std::holds_alternative<std::nullptr_t>(*literal))
         return nullptr;
-      }
-    }
-    throw std::runtime_error("[JSON::operator std::nullptr_t()]");
+    throw std::runtime_error("[JSON::operator std::nullptr_t()] cannot cast "
+    "non-nullptr_t type to nullptr_t");
   }
 
-  JSON JSON::operator[](std::string_view key) {
-    if (const JSONObject* map = std::get_if<JSONObject>(&this->value)) {
-      if (map->count(key) == 1) {
-        std::string key_str = std::string(key);
-        return map->at(key_str);
-      }
-      throw std::runtime_error("[JSON::operator[]] key " + std::string(key) + " not found"); 
-    }
-    throw std::runtime_error("[JSON::operator[]] searching key on non-object type");
+  bool JSON::empty() const {
+    if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return map->empty();
+    else if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->empty();
+    throw std::runtime_error("[JSON::empty] queried non-container type");
   }
 
-  JSON JSON::operator[](const char* key) {
-    return (*this)[std::string_view(key)];
+  std::size_t JSON::size() const {
+    if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return map->size();
+    else if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->size();
+    throw std::runtime_error("[JSON::size] queried non-container type");
   }
-  
-  JSON JSON::operator[](std::size_t idx) {
-    if (const JSONArray* arr = std::get_if<JSONArray>(&this->value)) {
-      if (idx >= arr->size()) {
-        throw std::runtime_error("[JSON::operator[]] index out of range"); 
-      }
+
+  std::size_t JSON::max_size() const {
+    if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return map->max_size();
+    else if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->max_size();
+    throw std::runtime_error("[JSON::max_size] queried non-container type");
+  }
+
+  void JSON::clear() {
+    if (JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return map->clear();
+    else if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->clear();
+    throw std::runtime_error("[JSON::clear] tried to clear non-container type");
+  }
+
+  JSON& JSON::operator[](const std::string& key) {
+    if (JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return (*map)[key];
+    throw std::runtime_error("[JSON::operator[]] searching key on non-object "
+    "type");
+  }
+
+  JSON& JSON::operator[](std::string_view key) {
+    if (JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return (*map).find(key)->second;
+    throw std::runtime_error("[JSON::operator[]] searching key on non-object "
+    "type");
+  }
+
+  JSON& JSON::at(const std::string& key) {
+    if (JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return map->at(key);
+    throw std::runtime_error("[JSON::operator[]] searching key on non-object "
+    "type");
+  }
+
+  JSON& JSON::at(std::string_view key) {
+    if (JSONObject* map = std::get_if<JSONObject>(&this->value)) {
+      auto iter = (*map).find(key);
+      if (iter != map->end()) return iter->second;
+      throw std::runtime_error("[JSON::operator[]] could not find key");
+    }
+    throw std::runtime_error("[JSON::operator[]] searching key on non-object "
+    "type");
+  }
+
+  json::JSONObject::size_type JSON::count(const std::string& key) const {
+    if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return map->count(key);
+    throw std::runtime_error("[JSON::count] searching key on non-object "
+    "type");
+  }
+
+  json::JSONObject::size_type JSON::count(std::string_view key) const {
+    if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return map->count(key);
+    throw std::runtime_error("[JSON::count] searching key on non-object "
+    "type");
+  }
+
+  bool JSON::contains(const std::string& key) const {
+    if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return map->count(key) == 1;
+    throw std::runtime_error("[JSON::count] searching key on non-object "
+    "type");
+  }
+
+  bool JSON::contains(std::string_view key) const {
+    if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return map->count(key) == 1;
+    throw std::runtime_error("[JSON::count] searching key on non-object "
+    "type");
+  }
+
+
+  JSON& JSON::operator[](std::size_t idx) {
+    if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return (*arr)[idx];
+    throw std::runtime_error("[JSON::operator[]] indexing non-array type"); 
+  }
+
+  JSON& JSON::at(std::size_t idx) {
+    if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
       return arr->at(idx);
-    }
     throw std::runtime_error("[JSON::operator[]] indexing non-array type"); 
   }
 
