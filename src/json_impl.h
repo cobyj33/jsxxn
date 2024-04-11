@@ -263,11 +263,13 @@ namespace json {
     std::size_t curr;
     const std::size_t size;
     LexState(std::string_view str) : str(str), curr(0), size(str.length()) {}
+    LexState(const LexState& ls) : str(ls.str), curr(0), size(ls.size) {}
   };
 
   struct Token {
     TokenType type;
     TokenLiteral val;
+    Token() : type(TokenType::END_OF_FILE), val("EOF") {}
     Token(TokenType type, TokenLiteral val) : type(type), val(val) {}
     Token(const Token& token) : type(token.type), val(token.val) {}
     Token(Token&& token) : type(token.type), val(token.val) {}

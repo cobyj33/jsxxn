@@ -6,9 +6,15 @@
 namespace json {
 
   struct ParserState {
-    std::vector<Token> tokens;
-    std::size_t curr;
-    ParserState(std::string_view v) : tokens(std::move(tokenize(v))), curr(0) {}
+    LexState ls;
+    Token token;
+    ParserState(std::string_view v) : ls(LexState(v)) {
+      this->token = nextToken(this->ls); // fetches first token!
+    }
+
+    void next() {
+      this->token = nextToken(this->ls);
+    }
   };
 
   std::string err_not_single_val(Token nextToken);
@@ -31,8 +37,8 @@ namespace json {
     ParserState ps(str);
 
     JSON value = parse_value(ps, 0);
-    if (ps.curr <= ps.tokens.size() && ps.tokens[ps.curr].type != TokenType::END_OF_FILE)
-        throw std::runtime_error(err_not_single_val(ps.tokens[ps.curr]));
+    if (ps.ls.curr < ps.ls.size)
+        throw std::runtime_error(err_not_single_val(nextToken(ps.ls)));
 
     return value;
   }
@@ -66,23 +72,26 @@ namespace json {
   JSON parse_value(ParserState& ps, unsigned int depth) {
     if (depth > JSON_IMPL_MAX_NESTING_DEPTH)
       throw std::runtime_error(err_max_nest());
-
-    switch (ps.tokens[ps.curr].type) {
+    
+    switch (ps.token.type) {
       case TokenType::LEFT_BRACE: return parse_object(ps, depth);
       case TokenType::LEFT_BRACKET: return parse_array(ps, depth);
-      case TokenType::TRUE: ps.curr++; return JSON(true); 
-      case TokenType::FALSE: ps.curr++; return JSON(false);
-      case TokenType::NULLPTR: ps.curr++; return JSON(nullptr);
-      case TokenType::NUMBER: return JSON(token_lit_to_json_lit(ps.tokens[ps.curr++].val));
-      case TokenType::STRING: return JSON(token_lit_to_json_lit(ps.tokens[ps.curr++].val));
-
+      case TokenType::TRUE: ps.next(); return JSON(true); 
+      case TokenType::FALSE: ps.next(); return JSON(false);
+      case TokenType::NULLPTR: ps.next(); return JSON(nullptr);
+      case TokenType::NUMBER: 
+      case TokenType::STRING: {
+        TokenLiteral literal = ps.token.val;
+        ps.next();
+        return JSON(token_lit_to_json_lit(literal));
+      }
       case TokenType::END_OF_FILE: throw std::runtime_error(err_got_eof());
       case TokenType::RIGHT_BRACE: 
       case TokenType::RIGHT_BRACKET:
       case TokenType::COLON:
       case TokenType::COMMA: // error
       default:
-        throw std::runtime_error(err_expect_json_val(ps.tokens[ps.curr]));
+        throw std::runtime_error(err_expect_json_val(ps.token));
     }
   }
 
@@ -90,46 +99,46 @@ namespace json {
     // Array Grammar: "[" (value (, value)* )? "]"
 
     JSON arr(JSONValueType::ARRAY);
-    ps.curr++; //consume opening bracket
 
-    if (ps.tokens[ps.curr].type == TokenType::RIGHT_BRACKET) {
-      ps.curr++;
-      return arr;
+    ps.next(); // consume left bracket
+    if (ps.token.type == TokenType::RIGHT_BRACKET) {
+      ps.next(); // consume right bracket 
+      return arr; 
     }
 
     // We know we must have a value inside of the array now.
     arr.push_back(std::move(parse_value(ps, depth + 1)));
 
-    while (ps.tokens[ps.curr].type != TokenType::RIGHT_BRACKET) {
-      switch (ps.tokens[ps.curr].type) {
+    while (ps.token.type != TokenType::RIGHT_BRACKET) {
+      switch (ps.token.type) {
         case TokenType::COMMA: {
-          ps.curr++;
+          ps.next(); // consume comma
           arr.push_back(std::move(parse_value(ps, depth + 1)));
         } break;
         case TokenType::END_OF_FILE:
           throw std::runtime_error(err_unclsed_arr());
-        default: throw std::runtime_error(err_unex_arr_token(ps.tokens[ps.curr]));
+        default: throw std::runtime_error(err_unex_arr_token(ps.token));
       }
     }
 
-    ps.curr++; // consume right bracket
+    ps.next(); // consume right bracket
     return arr;
   }
 
 
   // Grammar: STRING ":" value
   void parse_object_pair(ParserState& ps, JSON& obj, unsigned int depth) {
-    if (ps.tokens[ps.curr].type != TokenType::STRING)
-      throw std::runtime_error(err_expect_str_key(ps.tokens[ps.curr]));
+    if (ps.token.type != TokenType::STRING)
+      throw std::runtime_error(err_expect_str_key(ps.token));
 
-    std::string_view raw_key = std::get<std::string_view>(ps.tokens[ps.curr].val);
+    std::string_view raw_key = std::get<std::string_view>(ps.token.val);
     std::string key = json_string_resolve(raw_key);
-    ps.curr++;
+    ps.next();
 
-    if (ps.tokens[ps.curr].type != TokenType::COLON)
-      throw std::runtime_error(err_expect_colon(ps.tokens[ps.curr]));
+    if (ps.token.type != TokenType::COLON)
+      throw std::runtime_error(err_expect_colon(ps.token));
 
-    ps.curr++;
+    ps.next(); // consume colon
     JSONObject& objval = std::get<JSONObject>(obj.value);
     objval.emplace(std::move(key), std::move(parse_value(ps, depth + 1)));
   }
@@ -138,27 +147,27 @@ namespace json {
     // Object Grammar: "{" ( ( STRING ":" value ) (, STRING ":"" value)* )? "}"
     JSON obj(JSONValueType::OBJECT);
 
-    ps.curr++;
-    if (ps.tokens[ps.curr].type == TokenType::RIGHT_BRACE) {
-      ps.curr++;
+    ps.next(); // consume left curly brace
+    if (ps.token.type == TokenType::RIGHT_BRACE) {
+      ps.next(); // consume right curly brace
       return obj;
     }
 
     parse_object_pair(ps, obj, depth);
 
-    while (ps.tokens[ps.curr].type != TokenType::RIGHT_BRACE) {
-      switch (ps.tokens[ps.curr].type) {
+    while (ps.token.type != TokenType::RIGHT_BRACE) {
+      switch (ps.token.type) {
         case TokenType::COMMA: {
-          ps.curr++;
+          ps.next(); // consume comma
           parse_object_pair(ps, obj, depth);
         } break;
         case TokenType::END_OF_FILE:
           throw std::runtime_error(err_unclsed_obj());
-        default: throw std::runtime_error(err_unex_sep_token(ps.tokens[ps.curr]));
+        default: throw std::runtime_error(err_unex_sep_token(ps.token));
       }
     }
 
-    ps.curr++; // consume right brace
+    ps.next(); // consume right brace
     return obj;
   }
 
