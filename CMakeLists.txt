@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.7)
 # * I decided that 3.7 was a good place to settle. Since it was released in
 # * 2018, it shouldn't be hard to get on your system.
 
+# A great resource for CMake is https://cliutils.gitlab.io/modern-cmake/ if
+# you'd like to learn
+
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Dev: Developer comments start with "# D:". If specific implementation details
 # Dev: don't really matter and you'd just like to simply build jsxxn, just 
@@ -9,6 +12,15 @@ cmake_minimum_required(VERSION 3.7)
 
 # Usr: User comments start with a "# U:". Both developers and library users
 # Usr: should read these comments.
+
+# Dev: PROJECT_IS_TOP_LEVEL workaround for pre CMake 3.21
+# Dev: Mostly all building options should work completely independent on if
+# Dev: jsxxn is not the top-level directory through using target properties
+if(NOT DEFINED PROJECT_NAME)
+  set(JSXXN_IS_TOP_LEVEL ON)
+else()
+  set(JSXXN_IS_TOP_LEVEL OFF)
+endif()
 
 project(jsxxn
   LANGUAGES CXX
@@ -20,13 +32,11 @@ OPTION(JSXXN_ENABLE_GPROF "Add -pg to compiler flags on gcc and clang (Default O
 OPTION(JSXXN_BUILD_EXAMPLES "Build Examples" OFF)
 OPTION(JSXXN_BUILD_TESTS "Build Tests" OFF)
 
-# Dev: I'm not sure if this forces any project that includes jsxxn from an
-# Dev: add_subdirectory call to export compile commands. Will have to experiment
-# Dev: with this more in the future. 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if (JSXXN_IS_TOP_LEVEL)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
 
 set(JSXXN_COMPILE_FEATURES cxx_std_17)
-
 if (((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))) 
   list(APPEND JSXXN_COMPILE_OPTIONS -Wall -Wextra -Wpedantic)
 elseif(MSVC)
