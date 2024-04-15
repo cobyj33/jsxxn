@@ -1,8 +1,8 @@
-#ifndef JSON_IMPL_H
-#define JSON_IMPL_H
+#ifndef JSXXN_IMPL_H
+#define JSXXN_IMPL_H
 
-#include "json.h"
-#define JSON_IMPL_MAX_NESTING_DEPTH 250
+#include "jsxxn.h"
+#define JSXXN_IMPL_MAX_NESTING_DEPTH 250
 
 #include <string_view>
 #include <cstddef>

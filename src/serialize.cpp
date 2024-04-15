@@ -1,4 +1,4 @@
-#include "json_impl.h"
+#include "jsxxn_impl.h"
 
 #include <stdexcept>
 #include <sstream>
@@ -104,9 +104,9 @@ namespace json {
   }
 
   void serialize(const JSONValue& json, unsigned int depth, std::string& output) {
-    if (depth > JSON_IMPL_MAX_NESTING_DEPTH) {
+    if (depth > JSXXN_IMPL_MAX_NESTING_DEPTH) {
       throw std::runtime_error("[json::serialize] Exceeded max nesting "
-      "depth of " + std::to_string(JSON_IMPL_MAX_NESTING_DEPTH));
+      "depth of " + std::to_string(JSXXN_IMPL_MAX_NESTING_DEPTH));
     }
 
     std::visit(overloaded { 
@@ -155,9 +155,9 @@ namespace json {
   }
 
   void stringify(const JSONValue& json, unsigned int depth, std::string& output) {
-    if (depth > JSON_IMPL_MAX_NESTING_DEPTH) {
+    if (depth > JSXXN_IMPL_MAX_NESTING_DEPTH) {
       throw std::runtime_error("[json::serialize] Exceeded max nesting "
-      "depth of " + std::to_string(JSON_IMPL_MAX_NESTING_DEPTH));
+      "depth of " + std::to_string(JSXXN_IMPL_MAX_NESTING_DEPTH));
     }
 
     std::visit(overloaded { 

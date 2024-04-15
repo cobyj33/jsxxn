@@ -1,4 +1,4 @@
-#include "json_impl.h"
+#include "jsxxn_impl.h"
 
 #include <stdexcept>
 #include <iostream>
@@ -70,7 +70,7 @@ namespace json {
   }
 
   JSON parse_value(ParserState& ps, unsigned int depth) {
-    if (depth > JSON_IMPL_MAX_NESTING_DEPTH)
+    if (depth > JSXXN_IMPL_MAX_NESTING_DEPTH)
       throw std::runtime_error(err_max_nest());
     
     switch (ps.token.type) {
@@ -178,7 +178,7 @@ namespace json {
 
   std::string err_max_nest() {
     return "Exceeded max nesting depth of " + 
-      std::to_string(JSON_IMPL_MAX_NESTING_DEPTH);
+      std::to_string(JSXXN_IMPL_MAX_NESTING_DEPTH);
   }
 
   std::string err_expect_json_val(Token token) {

@@ -1,5 +1,5 @@
-#ifndef JSON_COBYJ33_H
-#define JSON_COBYJ33_H
+#ifndef JSXXN_COBYJ33_H
+#define JSXXN_COBYJ33_H
 
 #include <string>
 #include <vector>

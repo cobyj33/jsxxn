@@ -1,64 +1,69 @@
 cmake_minimum_required(VERSION 3.7)
 
+# * Developer comments start with "# >". If specific implementation details
+# * don't really matter and you'd just like to simply build jsxxn, just 
+# * disregard these.
 
+# * User comments start with a "# *". Both developers and library users should
+# * read these comments.
+
+project(jsxxn
+  LANGUAGES CXX
+  VERSION 0.0.0)
+
+# I'm not sure if this forces any project that includes jsxxn from an
+# add_subdirectory call to export compile commands. Will have to experiment
+# with this more in the future. 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 17)
 
-project(json LANGUAGES CXX
-VERSION 0.0.0)
+set(JSXXN_COMPILE_FEATURES cxx_std_17)
 
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
-if(NOT COMPILER_SUPPORTS_CXX17)
-  message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+set(JSXXN_COMPILE_OPTIONS "")
+if (((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))) 
+  set(JSXXN_COMPILE_OPTIONS -Wall -Wextra -Wpedantic)
+elseif(MSVC)
+  set(JSXXN_COMPILE_OPTIONS /W4 /WX)
 endif()
 
-set(JSON_COMPILE_OPTIONS -Wall -Wextra -Wpedantic)
-if (MSVC)
-  set(JSON_COMPILE_OPTIONS /std:c++17 /W4 /WX)
-endif()
+# I decided that setting CMAKE_BUILD_TYPE to Debug automatically wasn't a great
+# idea. Possibly other people
+OPTION(JSXXN_ENABLE_GPROF "Add -pg to compiler flags on gcc and clang (Default OFF). Note that you should also make sure CMAKE_BUILD_TYPE=Debug" OFF)
+OPTION(JSXXN_BUILD_EXAMPLES "Build Examples" OFF)
+OPTION(JSXXN_BUILD_TESTS "Build Tests" OFF)
 
-OPTION(JSON_ENABLE_GPROF "Set CMAKE_BUILD_TYPE to \"Debug\" and add -pg to compiler flags (Default OFF)" OFF)
-OPTION(JSON_BUILD_EXAMPLES "Build Examples" OFF)
-OPTION(JSON_BUILD_TESTS "Build Tests" OFF)
-
-if(JSON_ENABLE_GPROF AND ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")))
-  message("[json] Enabling gprof flags...")
-
-  if (NOT (CMAKE_BUILD_TYPE STREQUAL "Debug"))
-    message("[json] Enabling gprof flags: Setting CMAKE_BUILD_TYPE to Debug")
-    set(CMAKE_BUILD_TYPE Debug)
-  endif()
+if(JSXXN_ENABLE_GPROF AND ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")))
+  message("[jsxxn] Enabling gprof flags...")
 
   set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -pg)
   set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -pg)
   set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} -pg)
 endif()
 
-set(JSON_EXAMPLES_DIRECTORY ${CMAKE_SOURCE_DIR}/examples)
-set(JSON_SRC_DIRECTORY ${CMAKE_SOURCE_DIR}/src)
-set(JSON_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/include)
-set(JSON_IMPL_INCLUDE_DIRECTORY ${JSON_SRC_DIRECTORY})
-set(JSON_TEST_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
+set(JSXXN_EXAMPLES_DIRECTORY ${CMAKE_SOURCE_DIR}/examples)
+set(JSXXN_SRC_DIRECTORY ${CMAKE_SOURCE_DIR}/src)
+set(JSXXN_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/include)
+set(JSXXN_IMPL_INCLUDE_DIRECTORY ${JSXXN_SRC_DIRECTORY})
+set(JSXXN_TEST_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
 
-set(JSON_SOURCE_FILES
-${JSON_SRC_DIRECTORY}/json.cpp
-${JSON_SRC_DIRECTORY}/equality.cpp
-${JSON_SRC_DIRECTORY}/parse.cpp
-${JSON_SRC_DIRECTORY}/serialize.cpp
-${JSON_SRC_DIRECTORY}/tokenize.cpp
-${JSON_SRC_DIRECTORY}/util.cpp)
+set(JSXXN_SOURCE_FILES
+${JSXXN_SRC_DIRECTORY}/jsxxn.cpp
+${JSXXN_SRC_DIRECTORY}/equality.cpp
+${JSXXN_SRC_DIRECTORY}/parse.cpp
+${JSXXN_SRC_DIRECTORY}/serialize.cpp
+${JSXXN_SRC_DIRECTORY}/tokenize.cpp
+${JSXXN_SRC_DIRECTORY}/util.cpp)
 
-add_library(json STATIC ${JSON_SOURCE_FILES})
-target_include_directories(json PUBLIC ${JSON_INCLUDE_DIRECTORY} PRIVATE ${JSON_IMPL_INCLUDE_DIRECTORY})
-target_compile_options(json PUBLIC ${JSON_COMPILE_OPTIONS})
+add_library(jsxxn STATIC ${JSXXN_SOURCE_FILES})
+target_include_directories(jsxxn PUBLIC ${JSXXN_INCLUDE_DIRECTORY} PRIVATE ${JSXXN_IMPL_INCLUDE_DIRECTORY})
+target_compile_options(jsxxn PUBLIC ${JSXXN_COMPILE_OPTIONS})
+target_compile_features(jsxxn PRIVATE ${JSXXN_COMPILE_FEATURES})
 
-if (JSON_BUILD_EXAMPLES)
-  message("[json] Entering Examples Directory")
-  add_subdirectory(${JSON_EXAMPLES_DIRECTORY})
+if (JSXXN_BUILD_EXAMPLES)
+  message("[jsxxn] Entering Examples Directory")
+  add_subdirectory(${JSXXN_EXAMPLES_DIRECTORY})
 endif()
 
-if (JSON_BUILD_TESTS)
-  message("[json] Entering Tests Directory")
-  add_subdirectory(${JSON_TEST_DIRECTORY})
-  endif()
+if (JSXXN_BUILD_TESTS)
+  message("[jsxxn] Entering Tests Directory")
+  add_subdirectory(${JSXXN_TEST_DIRECTORY})
+endif()
