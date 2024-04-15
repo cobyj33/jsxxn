@@ -4,7 +4,7 @@
 #include <sstream>
 
 
-namespace json {
+namespace jsxxn {
   void serialize(const JSONValue& json, unsigned int depth, std::string& output);
   void stringify(const JSONValue& json, unsigned int depth, std::string& output);
   void json_literal_serialize(const JSONLiteral& literal, std::string& output);
@@ -105,7 +105,7 @@ namespace json {
 
   void serialize(const JSONValue& json, unsigned int depth, std::string& output) {
     if (depth > JSXXN_IMPL_MAX_NESTING_DEPTH) {
-      throw std::runtime_error("[json::serialize] Exceeded max nesting "
+      throw std::runtime_error("[jsxxn::serialize] Exceeded max nesting "
       "depth of " + std::to_string(JSXXN_IMPL_MAX_NESTING_DEPTH));
     }
 
@@ -156,7 +156,7 @@ namespace json {
 
   void stringify(const JSONValue& json, unsigned int depth, std::string& output) {
     if (depth > JSXXN_IMPL_MAX_NESTING_DEPTH) {
-      throw std::runtime_error("[json::serialize] Exceeded max nesting "
+      throw std::runtime_error("[jsxxn::serialize] Exceeded max nesting "
       "depth of " + std::to_string(JSXXN_IMPL_MAX_NESTING_DEPTH));
     }
 

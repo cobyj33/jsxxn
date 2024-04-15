@@ -1,42 +1,50 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.7) 
+# * I decided that 3.7 was a good place to settle. Since it was released in
+# * 2018, it shouldn't be hard to get on your system.
 
-# * Developer comments start with "# >". If specific implementation details
-# * don't really matter and you'd just like to simply build jsxxn, just 
-# * disregard these.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Dev: Developer comments start with "# D:". If specific implementation details
+# Dev: don't really matter and you'd just like to simply build jsxxn, just 
+# Dev: disregard these.
 
-# * User comments start with a "# *". Both developers and library users should
-# * read these comments.
+# Usr: User comments start with a "# U:". Both developers and library users
+# Usr: should read these comments.
 
 project(jsxxn
   LANGUAGES CXX
   VERSION 0.0.0)
 
-# I'm not sure if this forces any project that includes jsxxn from an
-# add_subdirectory call to export compile commands. Will have to experiment
-# with this more in the future. 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-set(JSXXN_COMPILE_FEATURES cxx_std_17)
-
-set(JSXXN_COMPILE_OPTIONS "")
-if (((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))) 
-  set(JSXXN_COMPILE_OPTIONS -Wall -Wextra -Wpedantic)
-elseif(MSVC)
-  set(JSXXN_COMPILE_OPTIONS /W4 /WX)
-endif()
-
-# I decided that setting CMAKE_BUILD_TYPE to Debug automatically wasn't a great
-# idea. Possibly other people
+# Dev: I decided that setting CMAKE_BUILD_TYPE to Debug automatically wasn't a
+# Dev: great idea. May be unintuitive though, something to note for the future.
 OPTION(JSXXN_ENABLE_GPROF "Add -pg to compiler flags on gcc and clang (Default OFF). Note that you should also make sure CMAKE_BUILD_TYPE=Debug" OFF)
 OPTION(JSXXN_BUILD_EXAMPLES "Build Examples" OFF)
 OPTION(JSXXN_BUILD_TESTS "Build Tests" OFF)
 
+# Dev: I'm not sure if this forces any project that includes jsxxn from an
+# Dev: add_subdirectory call to export compile commands. Will have to experiment
+# Dev: with this more in the future. 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(JSXXN_COMPILE_FEATURES cxx_std_17)
+
+if (((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))) 
+  list(APPEND JSXXN_COMPILE_OPTIONS -Wall -Wextra -Wpedantic)
+elseif(MSVC)
+  list(APPEND JSXXN_COMPILE_OPTIONS /W4 /WX)
+endif()
+
+
 if(JSXXN_ENABLE_GPROF AND ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")))
   message("[jsxxn] Enabling gprof flags...")
+  list(APPEND JSXXN_COMPILE_OPTIONS -pg)
 
-  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -pg)
-  set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -pg)
-  set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} -pg)
+  # Dev: https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html
+  # Dev: "Generate extra code to write profile information suitable for the 
+  # Dev: analysis program prof (for -p) or gprof (for -pg). You must use this
+  # Dev: option when compiling the source files you want data about, and
+  # Dev: **you must also use it when linking**."
+  list(APPEND CMAKE_EXE_LINKER_FLAGS "-pg")
+  list(APPEND CMAKE_SHARED_LINKER_FLAGS "-pg")
 endif()
 
 set(JSXXN_EXAMPLES_DIRECTORY ${CMAKE_SOURCE_DIR}/examples)

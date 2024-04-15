@@ -25,7 +25,7 @@ int printer_main(int argc, char** argv, JSONPrinterFunc printer_func) {
     while (std::getline(std::cin, line)) json_str += line;
 
     try {
-      json::JSON parsed = json::parse(json_str);
+      jsxxn::JSON parsed = jsxxn::parse(json_str);
       std::cout << printer_func(parsed) << std::endl;
       exitcode = EXIT_SUCCESS;
     } catch (const std::runtime_error& err) {
@@ -45,7 +45,7 @@ int printer_main(int argc, char** argv, JSONPrinterFunc printer_func) {
     }
 
     try {
-      json::JSON parsed = json::parse(json_str);
+      jsxxn::JSON parsed = jsxxn::parse(json_str);
       std::cout << printer_func(parsed) << std::endl;
       exitcode = EXIT_SUCCESS;
     } catch (const std::runtime_error& err) {

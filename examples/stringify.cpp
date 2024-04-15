@@ -2,5 +2,5 @@
 
 // see printer.cpp for implementation details!
 int main(int argc, char** argv) {
-  return printer_main(argc, argv, json::stringify);
+  return printer_main(argc, argv, jsxxn::stringify);
 }

@@ -11,7 +11,7 @@
 
 // [ { "name": 3 }, { "age": 4 }, [ 3, 5, 8 ], "String" ]
 
-namespace json {
+namespace jsxxn {
   class JSON;
 
   typedef std::variant<std::int64_t, double> JSONNumber;
@@ -145,8 +145,8 @@ namespace json {
 
 
       // Object Methods
-      json::JSONObject::size_type count(const std::string& key) const;
-      json::JSONObject::size_type count(std::string_view key) const;
+      jsxxn::JSONObject::size_type count(const std::string& key) const;
+      jsxxn::JSONObject::size_type count(std::string_view key) const;
       bool contains(const std::string& key) const;
       bool contains(std::string_view key) const;
       JSON& operator[](const std::string& key);

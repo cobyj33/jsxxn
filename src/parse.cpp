@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <algorithm>
-namespace json {
+namespace jsxxn {
 
   struct ParserState {
     LexState ls;

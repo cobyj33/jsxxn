@@ -7,7 +7,7 @@
 #include <string_view>
 #include <cstddef>
 
-namespace json {
+namespace jsxxn {
   enum class TokenType {
     LEFT_BRACE,
     RIGHT_BRACE,

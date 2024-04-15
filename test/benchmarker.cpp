@@ -69,20 +69,20 @@ benchmark_data benchmark(std::string_view json_str) {
 
   try {
     TIMESTAMP(before_tokenize);
-    std::vector<json::Token> tokens = json::tokenize(json_str);
+    std::vector<jsxxn::Token> tokens = jsxxn::tokenize(json_str);
     data.tok_t = SINCE(before_tokenize);
 
     TIMESTAMP(before_parse);
-    json::JSON parsed = json::parse(json_str);
+    jsxxn::JSON parsed = jsxxn::parse(json_str);
     data.par_t = SINCE(before_parse);
     
     TIMESTAMP(before_serialize);
-    std::string serialized = json::serialize(parsed);
+    std::string serialized = jsxxn::serialize(parsed);
     data.ser_t = SINCE(before_serialize);
 
     try {
       TIMESTAMP(before_reparse);
-      json::JSON reparsed = json::parse(serialized);
+      jsxxn::JSON reparsed = jsxxn::parse(serialized);
       data.repar_ser_t = SINCE(before_reparse);
 
       TIMESTAMP(before_deep_equals);
@@ -92,12 +92,12 @@ benchmark_data benchmark(std::string_view json_str) {
     } catch (const std::runtime_error& err) { }
 
     TIMESTAMP(before_stringify);
-    std::string stringified = json::stringify(parsed);
+    std::string stringified = jsxxn::stringify(parsed);
     data.strify_t = SINCE(before_stringify);
 
     try {
       TIMESTAMP(before_stringify_reparse);
-      json::JSON stringify_reparse = json::parse(serialized);
+      jsxxn::JSON stringify_reparse = jsxxn::parse(serialized);
       data.repar_strify_t = SINCE(before_stringify_reparse);
     } catch (const std::runtime_error& err) { }
     

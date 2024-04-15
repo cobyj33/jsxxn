@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 
-namespace json {
+namespace jsxxn {
 
   bool json_value_equals_deep(const JSONValue& a, const JSONValue& b) {
     return std::visit(overloaded {

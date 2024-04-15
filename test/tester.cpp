@@ -88,13 +88,13 @@ int main(int argc, char** argv) {
 
     try {  
       TIMESTAMP(before_parse);
-      json::JSON parsed = json::parse(test.json_str);
+      jsxxn::JSON parsed = jsxxn::parse(test.json_str);
       TIMESTAMP(after_parse);
       std::cout << "SUCCESS in parsing " << test.id << "." << std::endl;
       std::cout << "Parsing Time: " << ns_str(DURATION(after_parse, before_parse)) << std::endl;
       
       TIMESTAMP(before_serialize);
-      std::string serialized = json::serialize(parsed);
+      std::string serialized = jsxxn::serialize(parsed);
       TIMESTAMP(after_serialize);
 
       std::cout << "Reserialized version of " << test.id << ":" << std::endl;
@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
       std::cout << "Serialization Time: " << ns_str(DURATION(after_serialize, before_serialize)) << std::endl;
 
       try {
-        json::JSON reparsed = json::parse(serialized);
+        jsxxn::JSON reparsed = jsxxn::parse(serialized);
         std::cout << "SUCCESS in reparsing serialized input." << std::endl;
 
         TIMESTAMP(before_deep_equals);

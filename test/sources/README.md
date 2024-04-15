@@ -15,8 +15,8 @@ Some changes are:
 n_structure_object_with_comment.json, n_object_trailing_comment.json
 n_object_trailing_comment_slash_open.json changed to 
 y_structure_object_with_comment.json, y_object_trailing_comment.json and
-y_object_trailing_comment_slash_open.json respectively, as this
-json implementation simply discards comments.
+y_object_trailing_comment_slash_open.json respectively, as jsxxn
+simply discards comments.
 
 ## [JSON_checker](https://json.org/JSON_checker/)
 

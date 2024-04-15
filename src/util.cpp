@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <cassert>
 
-namespace json {
+namespace jsxxn {
   const char* json_value_type_str(JSONValueType jvt) {
     switch (jvt) {
       case JSONValueType::ARRAY: return "array";

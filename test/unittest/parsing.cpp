@@ -4,7 +4,7 @@
 
 TEST_CASE("trivial", "[parsing]") {
   SECTION("Number Parsing") {
-    json::JSON num = json::parse("10");
-    REQUIRE(num.type() == json::JSONValueType::NUMBER);
+    jsxxn::JSON num = jsxxn::parse("10");
+    REQUIRE(num.type() == jsxxn::JSONValueType::NUMBER);
   }
 }

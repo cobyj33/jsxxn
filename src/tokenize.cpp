@@ -10,7 +10,7 @@
 #include <cfloat>
 #include <climits>
 
-namespace json {
+namespace jsxxn {
 
   std::string err_unhndled_char(std::string_view v, std::size_t ind);
   std::string err_num_overflow(std::string_view v, std::size_t start, std::size_t end);

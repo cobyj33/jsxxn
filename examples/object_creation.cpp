@@ -6,9 +6,9 @@
 int main(int argc, char** argv) {
   (void)argc; (void)argv;
 
-  json::JSONObject example_obj = {
+  jsxxn::JSONObject example_obj = {
     {"name", "Christmas"},
-    {"date", json::JSONObject({
+    {"date", jsxxn::JSONObject({
       {"day", 25},
       {"month", "December"},
       {"year", 2023}
@@ -16,8 +16,8 @@ int main(int argc, char** argv) {
     {"description", "The most wonderful time of the year"}
   };
   
-  std::cout << json::serialize(example_obj) << std::endl;
+  std::cout << jsxxn::serialize(example_obj) << std::endl;
   std::cout << std::endl;
-  std::cout << json::serialize(json::parse(json::serialize(example_obj))) << std::endl;
+  std::cout << jsxxn::serialize(jsxxn::parse(jsxxn::serialize(example_obj))) << std::endl;
   return 0;
 }

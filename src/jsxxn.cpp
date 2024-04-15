@@ -10,7 +10,7 @@
 #include <cstdint>
 
 
-namespace json {
+namespace jsxxn {
 
   JSON::JSON() { this->value = nullptr; }
   JSON::JSON(std::nullptr_t value) { this->value = value; }
@@ -198,14 +198,14 @@ namespace json {
     "type");
   }
 
-  json::JSONObject::size_type JSON::count(const std::string& key) const {
+  jsxxn::JSONObject::size_type JSON::count(const std::string& key) const {
     if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
       return map->count(key);
     throw std::runtime_error("[JSON::count] searching key on non-object "
     "type");
   }
 
-  json::JSONObject::size_type JSON::count(std::string_view key) const {
+  jsxxn::JSONObject::size_type JSON::count(std::string_view key) const {
     if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
       return map->count(key);
     throw std::runtime_error("[JSON::count] searching key on non-object "
