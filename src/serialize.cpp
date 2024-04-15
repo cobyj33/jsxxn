@@ -5,7 +5,7 @@
 
 
 namespace jsxxn {
-  void serialize(const JSONValue& json, unsigned int depth, std::string& output);
+  void prettify(const JSONValue& json, unsigned int depth, std::string& output);
   void stringify(const JSONValue& json, unsigned int depth, std::string& output);
   void json_literal_serialize(const JSONLiteral& literal, std::string& output);
   void json_number_serialize(const JSONNumber& number, std::string& output);
@@ -18,9 +18,9 @@ namespace jsxxn {
     output.push_back(xdigit_as_ch(val & 0x000F));
   }
   
-  std::string serialize(const JSONValue& json) {
+  std::string prettify(const JSONValue& json) {
     std::string output;
-    serialize(json, 0, output);
+    prettify(json, 0, output);
     return output;
   }
 
@@ -103,9 +103,9 @@ namespace jsxxn {
     }, literal);
   }
 
-  void serialize(const JSONValue& json, unsigned int depth, std::string& output) {
+  void prettify(const JSONValue& json, unsigned int depth, std::string& output) {
     if (depth > JSXXN_IMPL_MAX_NESTING_DEPTH) {
-      throw std::runtime_error("[jsxxn::serialize] Exceeded max nesting "
+      throw std::runtime_error("[jsxxn::prettify] Exceeded max nesting "
       "depth of " + std::to_string(JSXXN_IMPL_MAX_NESTING_DEPTH));
     }
 
@@ -125,7 +125,7 @@ namespace jsxxn {
           output.append((depth + 1) * 2, ' ');
           json_string_serialize(entry.first, output); 
           output += ": "; 
-          serialize(entry.second.value, depth + 1, output);
+          prettify(entry.second.value, depth + 1, output);
           if (i != object.size() - 1) output += ", ";
           output.push_back('\n');
           i++;
@@ -143,7 +143,7 @@ namespace jsxxn {
         output += "[\n";
         for (JSONArray::size_type i = 0; i < arr.size(); i++) {
           output.append((depth + 1) * 2, ' ');
-          serialize(arr[i].value, depth + 1, output);
+          prettify(arr[i].value, depth + 1, output);
           if (i != arr.size() - 1) output += ", ";
           output.push_back('\n');
         }
@@ -156,7 +156,7 @@ namespace jsxxn {
 
   void stringify(const JSONValue& json, unsigned int depth, std::string& output) {
     if (depth > JSXXN_IMPL_MAX_NESTING_DEPTH) {
-      throw std::runtime_error("[jsxxn::serialize] Exceeded max nesting "
+      throw std::runtime_error("[jsxxn::prettify] Exceeded max nesting "
       "depth of " + std::to_string(JSXXN_IMPL_MAX_NESTING_DEPTH));
     }
 

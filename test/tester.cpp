@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
       std::cout << "Parsing Time: " << ns_str(DURATION(after_parse, before_parse)) << std::endl;
       
       TIMESTAMP(before_serialize);
-      std::string serialized = jsxxn::serialize(parsed);
+      std::string serialized = jsxxn::prettify(parsed);
       TIMESTAMP(after_serialize);
 
       std::cout << "Reserialized version of " << test.id << ":" << std::endl;

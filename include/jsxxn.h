@@ -53,7 +53,7 @@ namespace jsxxn {
   std::string json_number_serialize(const JSONNumber& number);
 
   std::string stringify(const JSONValue& json);
-  std::string serialize(const JSONValue& json);
+  std::string prettify(const JSONValue& json);
   JSON parse(std::string_view str);
 
   class JSON {
@@ -83,6 +83,7 @@ namespace jsxxn {
       JSON(const JSON& value);
       JSON(JSON&& value);
 
+      // explicit to be unambiguous with const JSON& and JSON&&
       explicit JSON(const JSONValue& value);
       explicit JSON(JSONValue&& value);
 

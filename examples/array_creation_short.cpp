@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
     })
   };
 
-  std::cout << jsxxn::serialize(arr) << std::endl;
+  std::cout << jsxxn::prettify(arr) << std::endl;
 
   // This, however, does not compile when we declare arr to be jsxxn::JSON
   // instead of jsxxn::JSONArray, as the std::initializer_list constructor 
@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
     })
   });
 
-  std::cout << jsxxn::serialize(arrJSON) << std::endl;
+  std::cout << jsxxn::prettify(arrJSON) << std::endl;
 
   return 0;
 }

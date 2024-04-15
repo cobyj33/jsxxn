@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
   arr.push_back(obj);
 
   // round trip, no particular reason but to show that it works
-  std::cout << jsxxn::serialize(jsxxn::parse(jsxxn::serialize(arr))) << std::endl;
+  std::cout << jsxxn::prettify(jsxxn::parse(jsxxn::prettify(arr))) << std::endl;
 
   return 0;
 }

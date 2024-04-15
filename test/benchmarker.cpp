@@ -77,7 +77,7 @@ benchmark_data benchmark(std::string_view json_str) {
     data.par_t = SINCE(before_parse);
     
     TIMESTAMP(before_serialize);
-    std::string serialized = jsxxn::serialize(parsed);
+    std::string serialized = jsxxn::prettify(parsed);
     data.ser_t = SINCE(before_serialize);
 
     try {
