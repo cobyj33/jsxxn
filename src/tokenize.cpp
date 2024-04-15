@@ -41,10 +41,6 @@ namespace jsxxn {
     return sec_string(v, ind, ind);
   }
 
-  std::string lexerr(LexState ls, const std::string& message) {
-    return message + ": " + sec_string(ls.str, ls.curr);
-  }
-
   inline std::string_view interpret_utf8char(std::string_view utf8char) {
     if (utf8char.size() == 1UL && static_cast<std::uint8_t>(utf8char[0]) <= 0x7F)
       return ascii_cstr(utf8char[0]);
