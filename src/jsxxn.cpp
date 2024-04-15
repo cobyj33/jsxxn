@@ -181,6 +181,13 @@ namespace jsxxn {
     "type");
   }
 
+  JSON& JSON::operator[](const char* key) {
+    if (JSONObject* map = std::get_if<JSONObject>(&this->value))
+      return (*map).find(key)->second;
+    throw std::runtime_error("[JSON::operator[]] searching key on non-object "
+    "type");
+  }
+
   JSON& JSON::at(const std::string& key) {
     if (JSONObject* map = std::get_if<JSONObject>(&this->value))
       return map->at(key);
@@ -189,6 +196,16 @@ namespace jsxxn {
   }
 
   JSON& JSON::at(std::string_view key) {
+    if (JSONObject* map = std::get_if<JSONObject>(&this->value)) {
+      auto iter = (*map).find(key);
+      if (iter != map->end()) return iter->second;
+      throw std::runtime_error("[JSON::operator[]] could not find key");
+    }
+    throw std::runtime_error("[JSON::operator[]] searching key on non-object "
+    "type");
+  }
+
+  JSON& JSON::at(const char* key) {
     if (JSONObject* map = std::get_if<JSONObject>(&this->value)) {
       auto iter = (*map).find(key);
       if (iter != map->end()) return iter->second;

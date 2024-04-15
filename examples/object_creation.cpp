@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
   
   std::cout << jsxxn::serialize(example_obj) << std::endl;
   std::cout << std::endl;
+  // a round trip parse to prove that parsing and reserializing are inverse operations.
   std::cout << jsxxn::serialize(jsxxn::parse(jsxxn::serialize(example_obj))) << std::endl;
   return 0;
 }

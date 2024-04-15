@@ -151,8 +151,10 @@ namespace jsxxn {
       bool contains(std::string_view key) const;
       JSON& operator[](const std::string& key);
       JSON& operator[](std::string_view key);
+      JSON& operator[](const char* key);
       JSON& at(const std::string& key);
       JSON& at(std::string_view key);
+      JSON& at(const char* key);
       
       template< class... Args >
       std::pair<JSONObject::iterator, bool> emplace(Args&&... args);

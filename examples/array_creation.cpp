@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
 
   // note that jsxxn::JSONArray is just a typedef for std::vector<JSON>
   // and jsxxn::JSONObject is just a typedef for std::map<std::string, JSON>, 
-  // so they can use all of the STL functions that you're already used to
+  // so all stl functions can be used.
 
   jsxxn::JSONArray arr;
   arr.push_back(1);
@@ -22,12 +22,14 @@ int main(int argc, char** argv) {
   arr.push_back(std::string_view("string_view"));
   arr.insert(arr.begin() + 3, jsxxn::JSONArray({ "nested", "initializer", "list", "inside" }));
 
-  // note that this line adds the array flatly into the top level array. I don't
-  // really know why but it does :(
+  // note that this line adds the array flatly into the top level array. It may
+  // seem unintuitive, but the example above inserts an array into the index,
+  // while this example inserts the values in the initializer list flatly.
   arr.insert(arr.begin() + 3, { "inserted", "initializer", "list", "inside" });
 
 
   jsxxn::JSONObject obj;
+  obj["name"] = "first object";
   obj["object"] = "test";
   obj["set"] = "of keys";
   obj["types"] = 2;
@@ -35,6 +37,22 @@ int main(int argc, char** argv) {
 
   arr.push_back(obj);
 
+  arr.push_back(jsxxn::JSONObject({
+    {"here is", 5},
+    {"another object", 113.55},
+    {"with a given set of keys", jsxxn::JSONObject({
+      {"that can nest", jsxxn::JSONArray({ "data", "quite", nullptr, "nicely", 101, "together"})}
+    })}
+  }));
+
+  jsxxn::JSON five = 5;
+  obj["note that this key will not show up in the first object"] = "although we are using the same stack variable";
+  obj["but will show up"] = "as a separate copied object in the array";
+
+  arr.push_back(five); 
+  arr.push_back(obj);
+
+  // round trip, no particular reason but to show that it works
   std::cout << jsxxn::serialize(jsxxn::parse(jsxxn::serialize(arr))) << std::endl;
 
   return 0;
