@@ -1,11 +1,11 @@
-#include "json.h"
+#include "jsxxn.h"
 
 #include <string>
 #include <iostream>
 
 // Design Note:
 
-// While I would like to allow json::JSONArray and json::JSONObject to not
+// While I would like to allow jsxxn::JSONArray and jsxxn::JSONObject to not
 // be present when using a shorthand initializer_list expression like this,
 // I can foresee unwanted runtime behavior if we interpret {"string", value}
 // pairs as objects, as they are ambiguous when compared to 2-length arrays.
@@ -37,16 +37,16 @@
 int main(int argc, char** argv) {
   (void)argc; (void)argv;
 
-  // note that I have declared arr as a json::JSONArray
-  json::JSONArray arr = {
+  // note that I have declared arr as a jsxxn::JSONArray
+  jsxxn::JSONArray arr = {
     1,
     2,
     "words",
     nullptr,
     -12,
-    std::string_view("string_view"),
-    json::JSONArray({ "nested", "initializer", "list", "inside"}),
-    json::JSONObject({
+    std::string_view("string_view"), // this would just be implicitly casted to std::string
+    jsxxn::JSONArray({ "nested", "initializer", "list", "inside"}),
+    jsxxn::JSONObject({
       {"object", "test"},
       {"set", "of keys"},
       {"types", 2},
@@ -55,21 +55,22 @@ int main(int argc, char** argv) {
     })
   };
 
-  std::cout << json::serialize(arr) << std::endl;
+  std::cout << jsxxn::serialize(arr) << std::endl;
 
-  // This, however, does not compile, as the std::initializer_list constructor 
-  // on json::JSON does not exist. You can try uncommenting and building
+  // This, however, does not compile when we declare arr to be jsxxn::JSON
+  // instead of jsxxn::JSONArray, as the std::initializer_list constructor 
+  // on jsxxn::JSON does not exist. You can try uncommenting and building
   // again to check
   //
-  // json::JSON arr = {
+  // jsxxn::JSON arr = {
   //   1,
   //   2,
   //   "words",
   //   nullptr,
   //   -12,
   //   std::string_view("string_view"),
-  //   json::JSONArray({ "nested", "initializer", "list", "inside"}),
-  //   json::JSONObject({
+  //   jsxxn::JSONArray({ "nested", "initializer", "list", "inside"}),
+  //   jsxxn::JSONObject({
   //     {"object", "test"},
   //     {"set", "of keys"},
   //     {"types", 2},
@@ -78,17 +79,17 @@ int main(int argc, char** argv) {
   //   })
   // };
 
-  // This does compile, as the json::JSONArray constructor after
+  // This does compile, as the jsxxn::JSONArray constructor after
   // assignment makes explicit what the initializer list represents
-  json::JSON arrJSON = json::JSONArray({
+  jsxxn::JSON arrJSON = jsxxn::JSONArray({
     1,
     2,
     "words",
     nullptr,
     -12,
     std::string_view("string_view"),
-    json::JSONArray({ "nested", "initializer", "list", "inside"}),
-    json::JSONObject({
+    jsxxn::JSONArray({ "nested", "initializer", "list", "inside"}),
+    jsxxn::JSONObject({
       {"object", "test"},
       {"set", "of keys"},
       {"types", 2},
@@ -97,7 +98,7 @@ int main(int argc, char** argv) {
     })
   });
 
-  std::cout << json::serialize(arrJSON) << std::endl;
+  std::cout << jsxxn::serialize(arrJSON) << std::endl;
 
   return 0;
 }

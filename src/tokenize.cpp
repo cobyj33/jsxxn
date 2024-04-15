@@ -1,5 +1,5 @@
-#include "json_impl.h"
-#include "json.h"
+#include "jsxxn_impl.h"
+#include "jsxxn.h"
 
 #include <string_view>
 #include <string>
@@ -10,19 +10,50 @@
 #include <cfloat>
 #include <climits>
 
-namespace json {
+namespace jsxxn {
 
+  std::string err_unhndled_char(std::string_view v, std::size_t ind);
+  std::string err_num_overflow(std::string_view v, std::size_t start, std::size_t end);
+  std::string err_lead_zeros(std::string_view v, std::size_t start, std::size_t end);
+  std::string err_no_int_part(std::string_view v, std::size_t start, std::size_t end);
+  std::string err_deci_no_int(std::string_view v, std::size_t start, std::size_t end);
+  std::string err_trailing_dec(std::string_view v, std::size_t start, std::size_t end);
+  std::string err_missing_exp_part(std::string_view v, std::size_t start, std::size_t end);
+  std::string err_exp_inval_ch(std::string_view v, std::size_t numstart, std::size_t curr);
+  std::string err_incmpl_hex(std::string_view v, std::size_t start, std::size_t end);
+  std::string err_inval_hex(std::string_view v, std::size_t start, std::size_t end);
+  std::string err_inval_esc_seq(std::string_view v, std::size_t start, std::size_t end);
+  std::string err_unclsed_str(std::string_view v, std::size_t start, std::size_t end);
+  std::string err_unesc_ctrl(std::string_view v, std::size_t ind);
+  std::string err_unesc_bkslsh(std::string_view v, std::size_t start, std::size_t end);
+  std::string err_unhndled_slsh(std::string_view v, std::size_t ind);
+  std::string err_kwrd_mismatch(std::string_view v, std::string_view kwrd, std::size_t ind);
+
+  std::string sec_string(std::string_view v, std::size_t start, std::size_t end);
   bool exact_match(std::string_view str, std::string_view check, std::size_t start);
-  std::uint16_t xdigit_as_u16(char ch);
-  std::string u16_as_utf8(std::uint16_t val);
-  std::string char_code_str(char ch);
+  const char* ascii_cstr(char ch);
 
-  struct LexState {
-    std::string_view str;
-    std::size_t curr;
-    const std::size_t size;
-    LexState(std::string_view str) : str(str), curr(0), size(str.length()) {}
-  };
+  inline std::string ascii_str(char ch) {
+    return std::string(ascii_cstr(ch));
+  }
+
+  inline std::string sec_string(std::string_view v, std::size_t ind) {
+    return sec_string(v, ind, ind);
+  }
+
+  std::string lexerr(LexState ls, const std::string& message) {
+    return message + ": " + sec_string(ls.str, ls.curr);
+  }
+
+  inline std::string_view interpret_utf8char(std::string_view utf8char) {
+    if (utf8char.size() == 1UL && static_cast<std::uint8_t>(utf8char[0]) <= 0x7F)
+      return ascii_cstr(utf8char[0]);
+    return utf8char;
+  }
+
+  inline std::string utf8charstr(std::string_view utf8char) {
+    return std::string(interpret_utf8char(utf8char));
+  }
 
   Token tokenize_number(LexState& ls);
   Token tokenize_int(LexState& ls);
@@ -31,19 +62,17 @@ namespace json {
   void consume_comments(LexState& ls);
   Token consume_keyword(LexState& ls, std::string_view keyword, TokenLiteral matched_type, TokenType matched_token_type);
 
-  std::vector<Token> tokenize(std::string_view str) {
-    std::vector<Token> res;
-    LexState ls(str);
 
+  Token nextToken(LexState& ls) {
     while (ls.curr < ls.size) {
       switch (ls.str[ls.curr]) {
-        case '{': res.push_back(Token(TokenType::LEFT_BRACE, "{")); ls.curr++; break;
-        case '}': res.push_back(Token(TokenType::RIGHT_BRACE, "}")); ls.curr++; break;
-        case ',': res.push_back(Token(TokenType::COMMA, ",")); ls.curr++; break;
-        case '[': res.push_back(Token(TokenType::LEFT_BRACKET, "[")); ls.curr++; break;
-        case ']': res.push_back(Token(TokenType::RIGHT_BRACKET, "]")); ls.curr++; break;
-        case ':': res.push_back(Token(TokenType::COLON, ":")); ls.curr++; break;
-        case '"': res.push_back(tokenize_string(ls)); break;
+        case '{': ls.curr++; return Token(TokenType::LEFT_BRACE, "{");
+        case '}': ls.curr++; return Token(TokenType::RIGHT_BRACE, "}");
+        case ',': ls.curr++; return Token(TokenType::COMMA, ",");
+        case '[': ls.curr++; return Token(TokenType::LEFT_BRACKET, "[");
+        case ']': ls.curr++; return Token(TokenType::RIGHT_BRACKET, "]");
+        case ':': ls.curr++; return Token(TokenType::COLON, ":");
+        case '"': return tokenize_string(ls);
         case '/': consume_comments(ls); break;
         case ' ':
         case '\r':
@@ -60,22 +89,93 @@ namespace json {
         case '6':
         case '7':
         case '8':
-        case '9': res.push_back(tokenize_number(ls)); break;
-        case 't': res.push_back(consume_keyword(ls, "true", TokenLiteral(true), TokenType::TRUE)); break;
-        case 'f': res.push_back(consume_keyword(ls, "false", TokenLiteral(false), TokenType::FALSE)); break;
-        case 'n': res.push_back(consume_keyword(ls, "null", TokenLiteral(nullptr), TokenType::NULLPTR)); break;
-        default: {
-          std::stringstream errmsg;
-          errmsg << "Unknown unhandled character: '" << char_code_str(ls.str[ls.curr])
-          << "' at index " << ls.curr << " (" << str_bef(ls.str, ls.curr, 15) <<
-          "->" << ls.str[ls.curr] << "<-" << str_af(ls.str, ls.curr, 15) << ")"; 
-          throw std::runtime_error(errmsg.str()); 
-        }
+        case '9': return tokenize_number(ls);
+        case 't': return consume_keyword(ls, "true", TokenLiteral(true), TokenType::TRUE);
+        case 'f': return consume_keyword(ls, "false", TokenLiteral(false), TokenType::FALSE);
+        case 'n': return consume_keyword(ls, "null", TokenLiteral(nullptr), TokenType::NULLPTR);
+        default: throw std::runtime_error(err_unhndled_char(ls.str, ls.curr));
       }
     }
 
-    res.push_back(Token(TokenType::END_OF_FILE, nullptr));
+    return Token(TokenType::END_OF_FILE, nullptr);
+  }
+
+  std::vector<Token> tokenize(std::string_view str) {
+    std::vector<Token> res;
+    LexState ls(str);
+
+    Token token = nextToken(ls);
+    res.push_back(token);
+    while (token.type != TokenType::END_OF_FILE) {
+      token = nextToken(ls);
+      res.push_back(token); // note that we also push back eof on purpose!
+    }
+    
     return res;
+  }
+
+  /**
+   * Looks ahead from the current number token in order to classify a number as
+   * either a float or an int, and then dispatches either toward tokenize_float
+   * or tokenize_int respectively in order to parse the number.
+   * 
+   * Also handles many parsing errors, which largely simplifies the
+   * implementation of tokenize_int and tokenize_float
+   * 
+   * Errors handled include:
+   *  Missing integer part: (Ex: "-", ".", "-.", "-E13")
+   *  Leading Zeros: (Ex: "012", "012.53")
+   *  Invalid exponential part: (Ex: )
+   *  Trailing Decimal Point: (Ex: "1.", "123.")
+   * 
+   * Therefore, these errors do not have to be checked for in either
+   * tokenize_int or tokenize_float
+  */
+  Token tokenize_number(LexState& ls) {
+    const std::size_t start = ls.curr;
+    std::size_t lookahead = ls.curr;
+    lookahead += ls.str[lookahead] == '-'; // consume -
+
+    if ((stridx(ls.str, lookahead)) == '.')
+      throw std::runtime_error(err_deci_no_int(ls.str, start, lookahead));
+
+    if (!isdigit(stridx(ls.str, lookahead)))
+      throw std::runtime_error(err_no_int_part(ls.str, start, lookahead));
+
+    if (ls.str[lookahead] == '0' && isdigit(stridx(ls.str, lookahead + 1)))
+      throw std::runtime_error(err_lead_zeros(ls.str, start, lookahead + 1)); 
+
+    for (; lookahead < ls.size && isdigit(ls.str[lookahead]); lookahead++); // consume integer part
+
+    if (stridx(ls.str, lookahead) == '.') { // float handling
+      if (!isdigit(stridx(ls.str, lookahead + 1)))
+        throw std::runtime_error(err_trailing_dec(ls.str, start, lookahead));
+      return tokenize_float(ls);
+    }
+
+    if (stridx(ls.str, lookahead) == 'e' || stridx(ls.str, lookahead) == 'E') { // exponential part
+      lookahead++;
+
+      /**
+       * I decided to not bother for missing integer parts on the exponentials here,
+       * as tokenize_float would need to check anyway since there is an early
+       * exit whenever a decimal point is detected. Therefore, both tokenize_int
+       * and tokenize_float check for a missing integer part
+      */
+      switch (stridx(ls.str, lookahead)) {
+        case '-': return tokenize_float(ls);
+        case '+':
+        case '0': case '1': case '2': case '3':
+        case '4': case '5': case '6': case '7': case '8':
+        case '9': return tokenize_int(ls);
+        default:
+          throw std::runtime_error(err_exp_inval_ch(ls.str, start, lookahead));
+      }
+    }
+
+    // fall through to int, as no decimal point was found, nor was any
+    // negative exponential part found
+    return tokenize_int(ls);
   }
 
   /**
@@ -93,13 +193,11 @@ namespace json {
   */
   Token tokenize_int(LexState& ls) {
     const std::size_t start = ls.curr; // 
-    std::int64_t num = 0;
-    std::int64_t sign = 1;
+    std::int64_t num = 0LL;
 
-    if (ls.str[ls.curr] == '-') { // read minus sign
-      ls.curr++;
-      sign = -1;
-    }
+    // std::int64_t sign = 1LL * (-1LL * (ls.str[ls.curr] == '-'));
+    std::int64_t sign = 1LL + (-2LL * (ls.str[ls.curr] == '-'));
+    ls.curr += ls.str[ls.curr] == '-';
 
     for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
       std::int64_t digit = (ls.str[ls.curr] - '0');
@@ -111,16 +209,18 @@ namespace json {
       num = num * 10LL + digit;
     }
 
+    // note how we don't have to check for decimals here, as we assume that this
+    // has already been confirmed by tokenize_number
+
     // read exponential part
     if (stridx(ls.str, ls.curr) == 'e' || stridx(ls.str, ls.curr) == 'E') {
       ls.curr++;
       constexpr int MAX_EXPONENTIAL = 20;
       unsigned int exponential = 0;
-
-      if (stridx(ls.str, ls.curr) == '+') ls.curr++;
+      ls.curr += stridx(ls.str, ls.curr) == '+';
 
       if (!isdigit(stridx(ls.str, ls.curr)))
-        throw std::runtime_error("[tokenize_int] exponential missing integer part");
+        throw std::runtime_error(err_missing_exp_part(ls.str, start, ls.curr));
 
       for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
         exponential = exponential * 10 + (ls.str[ls.curr] - '0');
@@ -145,19 +245,17 @@ namespace json {
   }
 
   Token tokenize_float(LexState& ls) {
-    double num = 0;
-    int sign = 1;
-
-    if (ls.str[ls.curr] == '-') { // read minus sign
-      ls.curr++;
-      sign = -1;
-    }
+    const std::size_t start = ls.curr;
+    double num = 0.0;
+    int sign = 1 + (-2 * (ls.str[ls.curr] == '-'));
+    ls.curr += ls.str[ls.curr] == '-'; 
 
     // read integer part
     for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
       double digit = (ls.str[ls.curr] - '0');
-      if ((DBL_MAX - digit) / 10 <= num) throw std::runtime_error("[tokenize_float] number too large");
-      num = num * 10 + digit;
+      if ((DBL_MAX - digit) / 10.0 <= num)
+        throw std::runtime_error(err_num_overflow(ls.str, start, ls.curr));
+      num = num * 10.0 + digit;
     }
 
     if (stridx(ls.str, ls.curr) == '.') { // read fractional part
@@ -172,30 +270,27 @@ namespace json {
     // read exponential part
     if (stridx(ls.str, ls.curr) == 'e' || stridx(ls.str, ls.curr) == 'E') {
       ls.curr++;
-      bool minus = false;
       constexpr int MAX_EXPONENTIAL = 308;
       unsigned int exponential = 0;
-
-      switch (stridx(ls.str, ls.curr)) {
-        case '-': ls.curr++; minus = true; break;
-        case '+': ls.curr++; minus = false; break;
-      }
+      bool minus = stridx(ls.str, ls.curr) == '-';
+      ls.curr += minus || stridx(ls.str, ls.curr) == '+';
 
       if (!isdigit(stridx(ls.str, ls.curr)))
-        throw std::runtime_error("[tokenize_float] exponential missing integer part");
+        throw std::runtime_error(err_missing_exp_part(ls.str, start, ls.curr));
 
       for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
         exponential = exponential * 10 + (ls.str[ls.curr] - '0');
-        if (exponential > MAX_EXPONENTIAL)
-          throw std::runtime_error("[tokenize_float] number too large");
       }
 
-      if (minus) {
+      if (exponential > MAX_EXPONENTIAL)
+        throw std::runtime_error(err_num_overflow(ls.str, start, ls.curr));
+
+      if (minus) { 
         for (; exponential != 0; exponential--) num *= 0.1;
       } else {
         for (; exponential != 0; exponential--) {
           if (DBL_MAX / 10 <= num)
-            throw std::runtime_error("[tokenize_float] number too large");
+            throw std::runtime_error(err_num_overflow(ls.str, start, ls.curr));
           num *= 10;
         }
       }
@@ -203,60 +298,6 @@ namespace json {
 
     num *= sign;
     return Token(TokenType::NUMBER, JSONNumber(num));
-  }
-
-  /**
-   * looks ahead to determine if an int or a float shall be parsed
-   * 
-   * Also handles many parsing errors, which largely simplifies the
-   * implementation of tokenize_int and tokenize_float
-  */
-  Token tokenize_number(LexState& ls) {
-    std::size_t lookahead = ls.curr;
-
-    if (ls.str[lookahead] == '-') lookahead++;
-
-    if ((stridx(ls.str, lookahead)) == '.')
-      throw std::runtime_error("[tokenize_number] decimal with no integer part");
-
-    if (!isdigit(stridx(ls.str, lookahead)))
-      throw std::runtime_error("[tokenize_number] minus with no integer part");
-
-    if (ls.str[lookahead] == '0' && isdigit(stridx(ls.str, lookahead + 1)))
-      throw std::runtime_error("[tokenize_number] leading zeros detected"); 
-
-    for (; lookahead < ls.size && isdigit(ls.str[lookahead]); lookahead++);
-
-    if (stridx(ls.str, lookahead) == '.') {
-      lookahead++;
-      if (!isdigit(stridx(ls.str, lookahead)))
-        throw std::runtime_error("[tokenize_number] trailing decimal point");
-      return tokenize_float(ls);
-    }
-
-    if (stridx(ls.str, lookahead) == 'e' || stridx(ls.str, lookahead) == 'E') {
-      lookahead++;
-
-      /**
-       * I decided to not bother for missing integer parts on the exponentials here,
-       * as tokenize_float would need to check anyway since there is an early
-       * exit whenever a decimal point is detected. Therefore, both tokenize_int
-       * and tokenize_float check for a missing integer part
-      */
-      switch (stridx(ls.str, lookahead)) {
-        case '-': return tokenize_float(ls);
-        case '+':
-        case '0': case '1': case '2': case '3':
-        case '4': case '5': case '6': case '7': case '8':
-        case '9': return tokenize_int(ls);
-        default: throw std::runtime_error("Exponential part followed by "
-            "invalid character: " + char_code_str(stridx(ls.str, lookahead)));
-      }
-    }
-
-    // fall through to int, as no decimal point was found, nor was any
-    // negative exponential part found
-    return tokenize_int(ls);
   }
 
   Token tokenize_string(LexState& ls) {
@@ -281,30 +322,27 @@ namespace json {
             case 'r': 
             case 't': ls.curr += 2; break; 
             case 'u': { // unicode :(
+              const std::size_t ustart = ls.curr;
               ls.curr += 2; // consume backslash and u
 
               if (ls.curr + 4 > ls.size)
-                throw std::runtime_error("[json::tokenize_string] "
-                "Incomplete unicode hex value");
+                throw std::runtime_error(err_incmpl_hex(ls.str, ustart, ls.size));
 
               for (std::size_t i = 0; i < 4; i++) {
                 if (!std::isxdigit(ls.str[ls.curr + i]))
-                  throw std::runtime_error("[json::tokenize_string] Incomplete "
-                  "unicode hex value");
+                  throw std::runtime_error(err_inval_hex(ls.str, ustart, ls.curr + i));
               }
               
               ls.curr += 4;
             } break;
             case '\0':
-              throw std::runtime_error("[json::tokenize_string] "
-              "Unescaped backslash");
+              throw std::runtime_error(err_unesc_bkslsh(ls.str, ls.curr, ls.curr + 1));
             default:
-              throw std::runtime_error("[json::tokenize_string] "
-              "Invalid escape sequence: \\" + char_code_str(next));
+              throw std::runtime_error(err_inval_esc_seq(ls.str, ls.curr, ls.curr + 1));
           }
         } break; // case '\\':
         case '\r':
-        case '\n': throw std::runtime_error("[json::tokenize_string] Unclosed String");
+        case '\n': throw std::runtime_error(err_unclsed_str(ls.str, start, ls.curr));
         default: {
           /**
            * "All Unicode characters may be placed within the
@@ -314,28 +352,28 @@ namespace json {
            *  So technically DEL is allowed? That had to be a mistake but whatever
           */
           if (std::iscntrl(ch) && ch != 127) 
-            throw std::runtime_error("[json::tokenize_string] "
-            " Unescaped control character inside of string: " +
-            char_code_str(ch));
+            throw std::runtime_error(err_unesc_ctrl(ls.str, ls.curr));
             
           ls.curr++;
         }
       }
     }
 
-    if (!closed) throw std::runtime_error("[json::tokenize_string] Unclosed String");
+    if (!closed)
+      throw std::runtime_error(err_unclsed_str(ls.str, start, ls.curr));
     return Token(TokenType::STRING, ls.str.substr(start, ls.curr - start - 1));
   }
 
   void consume_comments(LexState& ls) {
-    switch (ls.curr + 1 < ls.size ? ls.str[ls.curr + 1] : '\0') {
+    switch (stridx(ls.str, ls.curr + 1)) {
       case '/': for (; ls.curr < ls.size && ls.str[ls.curr] != '\n'; ls.curr++); break;
       case '*': for (; ls.curr + 1 < ls.size; ls.curr++) {
         if (ls.str[ls.curr] == '*' && ls.str[ls.curr+1] == '/') {
           ls.curr += 2; break;
         }
       } break;
-      default: throw std::runtime_error("[json::consume_comments] Unhandled slash");
+      default:
+        throw std::runtime_error(err_unhndled_slsh(ls.str, ls.curr));
     }
   }
 
@@ -345,25 +383,27 @@ namespace json {
       return Token(matched_token_type, matched_type);
     }
 
-    throw std::runtime_error("[consume_keyword] Tried to match " +
-      std::string(keyword) + " at index" + std::to_string(ls.curr) +
-      ". No match. ");
+    throw std::runtime_error(err_kwrd_mismatch(ls.str, keyword, ls.curr));
   }
 
   bool exact_match(std::string_view str, std::string_view check, std::size_t start) {
-    if (str.length() - start < check.length()) return false;
-
     std::size_t i = 0;
-    for (; i < check.length() && str[i + start] == check[i]; i++);
+    for (; i < check.length() && i + start < str.length() && str[i + start] == check[i]; i++);
     return i == check.length();
   }
 
-  
-
-  
+  std::string sec_string(std::string_view v, std::size_t start, std::size_t end) {
+    std::stringstream ss;
+    start = utf8beg(v, start);
+    end = utf8gnext(v, end);
+    ss << "(" << linebef(v, start, 40) <<
+      "->" << interpret_utf8char(v.substr(start, end - start)) << "<-" 
+      << linetoend(v, end, 40) << ")";
+    return ss.str();
+  }
 
   /* Used mainly for reporting char codes in errors which may have control characters */
-  std::string char_code_str(char ch) {
+  const char* ascii_cstr(char ch) {
     static const char* ascii_decs[256] = {"NUL","SOH","STX","ETX","EOT","ENQ",
       "ACK","\\a","\\b","\\t","\\n","\\v","\\f","\\r","SO","SI","DLE","DC1","DC2",
       "DC3","DC4","NAK","SYN","ETB","CAN","EM","SUB","ESC","FS","GS","RS","US",
@@ -384,7 +424,80 @@ namespace json {
       "231","232","233","234","235","236","237","238","239","240","241","242",
       "243","244","245","246","247","248","249","250","251","252","253","254",
       "255"};
-    return ascii_decs[static_cast<std::uint8_t>(ch)];
+    return ascii_decs[static_cast<std::uint8_t>(ch & 0xFF)];
+  }
+
+  std::string err_unhndled_char(std::string_view v, std::size_t ind) {
+    return "Unknown unhandled character: '" +
+      std::string(interpret_utf8char(utf8gat(v, ind))) + "' at index " +
+      std::to_string(ind) + " " + sec_string(v, ind);
+  }
+
+  std::string err_num_overflow(std::string_view v, std::size_t start, std::size_t end) {
+    return "Number too large: " + sec_string(v, start, end);
+  }
+
+  std::string err_no_int_part(std::string_view v, std::size_t start, std::size_t end) {
+    return "No integer part: " + sec_string(v, start, end);
+  }
+
+  std::string err_deci_no_int(std::string_view v, std::size_t start, std::size_t end) {
+    return "Decimal with no integer part:" + sec_string(v, start, end);
+  }
+
+  std::string err_trailing_dec(std::string_view v, std::size_t start, std::size_t end) {
+    return "Trailing decimal point" + sec_string(v, start, end);
+  }
+
+  std::string err_missing_exp_part(std::string_view v, std::size_t start, std::size_t end) {
+    return "Exponential missing integer part: " +
+      sec_string(v, start, end);
+  }
+
+  std::string err_lead_zeros(std::string_view v, std::size_t start, std::size_t end) {
+    return "Leading zeros detected: " + sec_string(v, start, end);
+  }
+
+  std::string err_exp_inval_ch(std::string_view v, std::size_t numstart, std::size_t curr) {
+    return "Exponential part followed by invalid character: " +
+      utf8charstr(utf8gat(v, curr)) + ": " +
+      sec_string(v, numstart, curr);
+  }
+
+  std::string err_incmpl_hex(std::string_view v, std::size_t start, std::size_t end) {
+    return "Incomplete unicode hex value: " + sec_string(v, start, end);
+  }
+
+  std::string err_inval_hex(std::string_view v, std::size_t start, std::size_t end) {
+    return "Invalid unicode hex value: all 4 characters must be hexidecimal "
+                  "digits: " + sec_string(v, start, end);
+  }
+
+  std::string err_unclsed_str(std::string_view v, std::size_t start, std::size_t end) {
+    return "Unclosed String" + sec_string(v, start, end);
+  }
+
+  std::string err_unesc_bkslsh(std::string_view v, std::size_t start, std::size_t end) {
+    return "Unescaped backslash: " + sec_string(v, start, end);
+  }
+
+  std::string err_unesc_ctrl(std::string_view v, std::size_t ind) {
+    return "Unescaped control character inside of string: " +
+      ascii_str(v[ind]) + ": " + sec_string(v, ind);
+  }
+
+  std::string err_kwrd_mismatch(std::string_view v, std::string_view kwrd, std::size_t start) {
+    return "Tried to match " + std::string(kwrd) + " at index " +
+      std::to_string(start) + ". No match: " +
+      sec_string(v, start, start + kwrd.length());
+  }
+
+  std::string err_inval_esc_seq(std::string_view v, std::size_t start, std::size_t end) {
+    return "Invalid escape sequence: " + sec_string(v, start, end);
+  }
+
+  std::string err_unhndled_slsh(std::string_view v, std::size_t ind) {
+    return "Unhandled slash: " + sec_string(v, ind);
   }
 
 };

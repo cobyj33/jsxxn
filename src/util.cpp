@@ -1,8 +1,9 @@
-#include "json_impl.h"
+#include "jsxxn_impl.h"
 
 #include <stdexcept>
+#include <cassert>
 
-namespace json {
+namespace jsxxn {
   const char* json_value_type_str(JSONValueType jvt) {
     switch (jvt) {
       case JSONValueType::ARRAY: return "array";
@@ -17,8 +18,8 @@ namespace json {
 
   JSONValueType json_literal_get_type(const JSONLiteral& literal) {
     return std::visit(overloaded {
-      [](const bool& val) { (void)val; return JSONValueType::BOOLEAN;  },
-      [](const std::nullptr_t& val) { (void)val; return JSONValueType::NULLPTR; },
+      [](const bool val) { (void)val; return JSONValueType::BOOLEAN;  },
+      [](const std::nullptr_t val) { (void)val; return JSONValueType::NULLPTR; },
       [](const std::string& val) { (void)val; return JSONValueType::STRING; },
       [](const JSONNumber& number) { (void)number; return JSONValueType::NUMBER; }
     }, literal);
@@ -70,8 +71,8 @@ namespace json {
     while (i < vlen) {
       switch (v[i]) {
         case '\\': {
-          char next = stridx(v, i + 1);
-          switch (next) {
+          assert(i + 1 < v.length());
+          switch (v[i + 1]) {
             case '"': ret.push_back('"'); i += 2; break; 
             case '\\': ret.push_back('\\'); i += 2; break; 
             case '/': ret.push_back('/'); i += 2; break; 
@@ -82,9 +83,13 @@ namespace json {
             case 't': ret.push_back('\t'); i += 2; break; 
             case 'u': { // unicode :(
               i += 2; // consume \u
+              assert(std::isxdigit(v[i]));
               std::uint16_t hexval = xdigit_as_u16(v[i++]);
+              assert(std::isxdigit(v[i]));
               hexval = (hexval << 4) + xdigit_as_u16(v[i++]);
+              assert(std::isxdigit(v[i]));
               hexval = (hexval << 4) + xdigit_as_u16(v[i++]);
+              assert(std::isxdigit(v[i]));
               hexval = (hexval << 4) + xdigit_as_u16(v[i++]);
               ret += u16_as_utf8(hexval);
             } break;
@@ -117,12 +122,14 @@ namespace json {
     #endif 
 
     return std::visit(overloaded {
-      [](const JSONNumber& number) { return json_number_serialize(number); },
+      [](const JSONNumber number) {
+        return json_number_serialize(number);
+      },
       [](const std::nullptr_t& nptr) {
         (void)nptr;
         return std::string("null");
       },
-      [](const bool& boolean) {
+      [](const bool boolean) {
         return boolean ? std::string("true") : std::string("false");
       },
       [](const std::string_view& str) {

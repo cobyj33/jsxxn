@@ -1,9 +1,9 @@
 
-#include "json_impl.h"
+#include "jsxxn_impl.h"
 
 #include <stdexcept>
 
-namespace json {
+namespace jsxxn {
 
   bool json_value_equals_deep(const JSONValue& a, const JSONValue& b) {
     return std::visit(overloaded {
@@ -38,14 +38,16 @@ namespace json {
     constexpr double DOUBLE_EPSILON = 1E-6;
 
     return std::visit(overloaded {
-      [](const std::int64_t& a1, const std::int64_t& b1) { return a1 == b1; },
-      [](const std::int64_t& a1, const double& b1) {
+      [](const std::int64_t a1, const std::int64_t b1) {
+        return a1 == b1;
+      },
+      [](const std::int64_t a1, const double b1) {
         return std::abs(static_cast<double>(a1) - b1) < DOUBLE_EPSILON;
       },
-      [](const double& a1, const std::int64_t& b1) {
+      [](const double a1, const std::int64_t b1) {
         return std::abs(a1 - static_cast<double>(b1)) < DOUBLE_EPSILON;
       },
-      [](const double& a1, const double& b1) {
+      [](const double a1, const double b1) {
         return std::abs(a1 - b1) < DOUBLE_EPSILON;
       }
     }, a, b); 
@@ -57,11 +59,11 @@ namespace json {
       [](const JSONNumber& a1, const JSONNumber& b1) {
         return json_number_equals_deep(a1, b1);  
       },
-      [](const std::nullptr_t& a, const std::nullptr_t& b) {
+      [](const std::nullptr_t a, const std::nullptr_t b) {
         (void)a; (void)b;
         return true;
       },
-      [](const bool& a, const bool& b) {
+      [](const bool a, const bool b) {
         return a == b;
       },
       [](const std::string& a, const std::string& b) {

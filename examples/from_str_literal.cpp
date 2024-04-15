@@ -1,4 +1,4 @@
-#include "json.h"
+#include "jsxxn.h"
 
 #include <iostream>
 
@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
   
   // Data from RFC 8259 section 13 (https://www.rfc-editor.org/rfc/rfc8259#section-13)
 
-  json::JSON parsed = json::parse(R"([ 
+  jsxxn::JSON parsed = jsxxn::parse(R"([ 
     {
       "precision": "zip",
       "Latitude":  37.7668,
@@ -37,10 +37,10 @@ int main(int argc, char** argv) {
     }
   ])");
 
-  std::cout << json::serialize(parsed) << std::endl;
+  std::cout << jsxxn::serialize(parsed) << std::endl;
   
   // switching json object with another json object
-  parsed = json::parse(R"({
+  parsed = jsxxn::parse(R"({
     "Image": {
         "Width":  800,
         "Height": 600,
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
       }
   })");
 
-  std::cout << json::serialize(parsed) << std::endl;
+  std::cout << jsxxn::serialize(parsed) << std::endl;
     
 
   return 0;

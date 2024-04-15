@@ -1,5 +1,5 @@
-#ifndef JSON_COBYJ33_H
-#define JSON_COBYJ33_H
+#ifndef JSXXN_COBYJ33_H
+#define JSXXN_COBYJ33_H
 
 #include <string>
 #include <vector>
@@ -11,7 +11,7 @@
 
 // [ { "name": 3 }, { "age": 4 }, [ 3, 5, 8 ], "String" ]
 
-namespace json {
+namespace jsxxn {
   class JSON;
 
   typedef std::variant<std::int64_t, double> JSONNumber;
@@ -52,6 +52,7 @@ namespace json {
   std::string json_literal_serialize(const JSONLiteral& literal);
   std::string json_number_serialize(const JSONNumber& number);
 
+  std::string stringify(const JSONValue& json);
   std::string serialize(const JSONValue& json);
   JSON parse(std::string_view str);
 
@@ -59,35 +60,26 @@ namespace json {
     public:
       JSONValue value;
 
-      JSON();
-
+      JSON(); // defaults to hold null
       JSON(JSONValueType type);
-      
       JSON(std::nullptr_t value);
-
       JSON(bool value);
-
       JSON(std::int8_t value);
       JSON(std::int16_t value);
       JSON(std::int32_t value);
       JSON(std::int64_t value);
       JSON(double value);
-      
       JSON(const char* value);
       JSON(std::string_view value);
       JSON(const std::string& value);
       JSON(std::string&& value);
-
       JSON(JSONNumber value);
       JSON(const JSONLiteral& value);
       JSON(JSONLiteral&& value);
-      
       JSON(const JSONArray& value);
       JSON(JSONArray&& value);
-
       JSON(const JSONObject& value);
       JSON(JSONObject&& value);
-
       JSON(const JSON& value);
       JSON(JSON&& value);
 
@@ -111,24 +103,60 @@ namespace json {
 
       // Literal Methods
       operator bool();
-      operator std::string();
+      operator std::string&();
       operator double();
       operator std::int64_t();
       operator std::nullptr_t();
-      operator JSONValue();
       operator JSONValue&();
+      operator JSONArray&();
+      operator JSONObject&();
+
+      bool empty() const;
+      std::size_t size() const;
+      std::size_t max_size() const;
+      void clear();
       
       // Array Methods
-      bool empty() const noexcept;
-      void push_back(JSON&& json);
       void push_back(const JSON& json);
-      JSON operator[](std::size_t idx);
+      void push_back(JSON&& json);
+      JSON& operator[](std::size_t idx);
+      JSON& at(std::size_t idx);
+      JSON& front();
+      JSON& back();
+      void pop_back();
+      const JSON& front() const;
+      const JSON& back() const;
+
+      #if __cplusplus > 201703L
+      template< class... Args >
+      constexpr JSON& emplace_back(Args&&... args);
+      #elif __cplusplus == 201703L
+      template< class... Args >
+      JSON& emplace_back(Args&&... args);
+      #endif
+
+      #if __cplusplus > 201703L
+      template< class... Args >
+      constexpr JSON& emplace(std::size_t i, Args&&... args);
+      #elif __cplusplus == 201703L
+      template< class... Args >
+      JSON& emplace(std::size_t i, Args&&... args);
+      #endif
+
 
       // Object Methods
-      bool containsKey(std::string_view key);
-      bool containsValue(std::string_view key);
-      JSON operator[](std::string_view key);
-      JSON operator[](const char* key);
+      jsxxn::JSONObject::size_type count(const std::string& key) const;
+      jsxxn::JSONObject::size_type count(std::string_view key) const;
+      bool contains(const std::string& key) const;
+      bool contains(std::string_view key) const;
+      JSON& operator[](const std::string& key);
+      JSON& operator[](std::string_view key);
+      JSON& at(const std::string& key);
+      JSON& at(std::string_view key);
+      
+      template< class... Args >
+      std::pair<JSONObject::iterator, bool> emplace(Args&&... args);
+      
   };
 };
 
