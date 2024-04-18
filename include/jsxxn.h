@@ -14,6 +14,9 @@
 namespace jsxxn {
   class JSON;
 
+  typedef std::int64_t s64;
+  typedef std::uint64_t u64;
+
   typedef std::variant<std::int64_t, double> JSONNumber;
   typedef std::variant<std::nullptr_t, std::string, JSONNumber, bool> JSONLiteral;
   typedef std::map<std::string, JSON, std::less<>> JSONObject;
@@ -31,6 +34,17 @@ namespace jsxxn {
     NULLPTR
   };
 
+  enum class JSXXNValueType {
+    OBJECT,
+    ARRAY,
+    SINTEGER,
+    DOUBLE,
+    BOOLEAN,
+    STRING,
+    NULLPTR
+  };
+
+  JSXXNValueType json_number_get_xtype(const JSONNumber& num);
   bool json_number_equals_deep(const JSONNumber& a, const JSONNumber& b);
   // equating JSONNumber's trivially is tricky, since equating doubles should
   // really be done with an epsilon value in mind
@@ -42,10 +56,15 @@ namespace jsxxn {
   // inline bool json_literal_equals_deep(const JSONLiteral& a, const JSONLiteral& b) { return a == b; };
   std::string json_literal_serialize(const JSONLiteral& literal);
 
+
   JSONValueType json_literal_get_type(const JSONLiteral& value);
+  JSXXNValueType json_literal_get_xtype(const JSONLiteral& value);
   JSONValueType json_value_get_type(const JSONValue& value);
+  JSXXNValueType json_value_get_xtype(const JSONValue& value);
   
-  const char* json_value_type_str(JSONValueType jvt);
+  JSONValueType jsxxnt_to_jsont(JSXXNValueType jsxnvt);
+  const char* jsonvt_str(JSONValueType jvt);
+  const char* jsxxnvt_str(JSXXNValueType jsxnvt);
   bool json_value_equals_deep(const JSONValue& a, const JSONValue& b);
 
   std::string json_string_serialize(std::string_view v);
@@ -62,6 +81,7 @@ namespace jsxxn {
 
       JSON(); // defaults to hold null
       JSON(JSONValueType type);
+      JSON(JSXXNValueType type);
       JSON(std::nullptr_t value);
       JSON(bool value);
       JSON(std::int8_t value);
@@ -71,11 +91,11 @@ namespace jsxxn {
       JSON(double value);
       JSON(const char* value);
       JSON(std::string_view value);
-      JSON(const std::string& value);
-      JSON(std::string&& value);
-      JSON(JSONNumber value);
-      JSON(const JSONLiteral& value);
-      JSON(JSONLiteral&& value);
+      explicit JSON(const std::string& value);
+      explicit JSON(std::string&& value);
+      explicit JSON(JSONNumber value);
+      explicit JSON(const JSONLiteral& value);
+      explicit JSON(JSONLiteral&& value);
       JSON(const JSONArray& value);
       JSON(JSONArray&& value);
       JSON(const JSONObject& value);
@@ -90,6 +110,7 @@ namespace jsxxn {
       bool equals_deep(const JSON& other);
       
       JSONValueType type();
+      JSXXNValueType xtype();
 
       JSON& operator=(const JSON& other);
       JSON& operator=(JSON&& other);
@@ -103,14 +124,14 @@ namespace jsxxn {
 
 
       // Literal Methods
-      operator bool();
-      operator std::string&();
-      operator double();
-      operator std::int64_t();
-      operator std::nullptr_t();
+      explicit operator bool();
+      explicit operator std::string&();
+      explicit operator double();
+      explicit operator std::int64_t();
+      explicit operator std::nullptr_t();
       operator JSONValue&();
-      operator JSONArray&();
-      operator JSONObject&();
+      explicit operator JSONArray&();
+      explicit operator JSONObject&();
 
       bool empty() const;
       std::size_t size() const;
@@ -146,16 +167,10 @@ namespace jsxxn {
 
 
       // Object Methods
-      jsxxn::JSONObject::size_type count(const std::string& key) const;
-      jsxxn::JSONObject::size_type count(std::string_view key) const;
-      bool contains(const std::string& key) const;
+      JSONObject::size_type count(std::string_view key) const;
       bool contains(std::string_view key) const;
-      JSON& operator[](const std::string& key);
       JSON& operator[](std::string_view key);
-      JSON& operator[](const char* key);
-      JSON& at(const std::string& key);
       JSON& at(std::string_view key);
-      JSON& at(const char* key);
       
       template< class... Args >
       std::pair<JSONObject::iterator, bool> emplace(Args&&... args);

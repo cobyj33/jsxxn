@@ -1,5 +1,7 @@
 #include "jsxxn_impl.h"
 
+#include "jsxxn_string.h"
+
 #include <stdexcept>
 #include <sstream>
 

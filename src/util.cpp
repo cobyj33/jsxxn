@@ -1,10 +1,12 @@
 #include "jsxxn_impl.h"
 
+#include "jsxxn_string.h"
+
 #include <stdexcept>
 #include <cassert>
 
 namespace jsxxn {
-  const char* json_value_type_str(JSONValueType jvt) {
+  const char* jsonvt_str(JSONValueType jvt) {
     switch (jvt) {
       case JSONValueType::ARRAY: return "array";
       case JSONValueType::OBJECT: return "object";
@@ -16,6 +18,32 @@ namespace jsxxn {
     return "unknown";
   }
 
+  const char* jsxxnvt_str(JSXXNValueType jsxnvt) {
+    switch (jsxnvt) {
+      case JSXXNValueType::ARRAY: return "array";
+      case JSXXNValueType::OBJECT: return "object";
+      case JSXXNValueType::BOOLEAN: return "boolean";
+      case JSXXNValueType::SINTEGER: return "signed integer";
+      case JSXXNValueType::DOUBLE: return "double";
+      case JSXXNValueType::STRING: return "string";
+      case JSXXNValueType::NULLPTR: return "null";
+    }
+    return "unknown";
+  }
+
+  JSONValueType jsxxnt_to_jsont(JSXXNValueType jsxnvt) {
+    switch (jsxnvt) {
+      case JSXXNValueType::ARRAY: return JSONValueType::ARRAY;
+      case JSXXNValueType::OBJECT: return JSONValueType::OBJECT;
+      case JSXXNValueType::BOOLEAN: return JSONValueType::BOOLEAN;
+      case JSXXNValueType::SINTEGER: return JSONValueType::NUMBER;
+      case JSXXNValueType::DOUBLE: return JSONValueType::NUMBER;
+      case JSXXNValueType::STRING: return JSONValueType::STRING;
+      case JSXXNValueType::NULLPTR: return JSONValueType::NULLPTR;
+    }
+    return JSONValueType::NULLPTR;
+  }
+
   JSONValueType json_literal_get_type(const JSONLiteral& literal) {
     return std::visit(overloaded {
       [](const bool val) { (void)val; return JSONValueType::BOOLEAN;  },
@@ -24,6 +52,8 @@ namespace jsxxn {
       [](const JSONNumber& number) { (void)number; return JSONValueType::NUMBER; }
     }, literal);
   }
+
+  
 
   JSONValueType json_value_get_type(const JSONValue& value) {
     return std::visit(overloaded { 
@@ -34,6 +64,34 @@ namespace jsxxn {
       }
     }, value);
   }
+  
+  JSXXNValueType json_number_get_xtype(const JSONNumber& number) {
+    return std::visit(overloaded {
+      [](const std::int64_t num) { (void)num; return JSXXNValueType::SINTEGER; },
+      [](const double num) { (void) num; return JSXXNValueType::DOUBLE; }
+    }, number);
+  }
+
+  JSXXNValueType json_literal_get_xtype(const JSONLiteral& literal) {
+    return std::visit(overloaded {
+      [](const bool val) { (void)val; return JSXXNValueType::BOOLEAN;  },
+      [](const std::nullptr_t val) { (void)val; return JSXXNValueType::NULLPTR; },
+      [](const std::string& val) { (void)val; return JSXXNValueType::STRING; },
+      [](const JSONNumber& number) { return json_number_get_xtype(number); }
+    }, literal);
+  }
+
+
+  JSXXNValueType json_value_get_xtype(const JSONValue& value) {
+    return std::visit(overloaded { 
+      [](const JSONObject& obj) { (void)obj; return JSXXNValueType::OBJECT; },
+      [](const JSONArray& arr) { (void)arr; return JSXXNValueType::ARRAY; },
+      [](const JSONLiteral& literal) {
+        return json_literal_get_xtype(literal);
+      }
+    }, value);
+  }
+
 
   const char* json_token_type_cstr(TokenType tokenType) {
     switch (tokenType) {
@@ -60,12 +118,6 @@ namespace jsxxn {
   std::string json_string_resolve(std::string_view v) {
     std::string ret;
     const std::size_t vlen = v.length();
-
-    // not sure if reserving is actually faster
-    #if 0
-    const std::uint32_t initres = nhpo2_u32(vlen); 
-    ret.reserve(initres);
-    #endif 
     
     std::size_t i = 0;
     while (i < vlen) {
@@ -105,22 +157,6 @@ namespace jsxxn {
 
   std::string json_token_literal_serialize(TokenLiteral literal) {
     // still not sure if std::visit or a if-chain is faster
-
-    #if 0
-    if (std::holds_alternative<JSONNumber>(literal)) {
-      JSONNumber num = std::get<JSONNumber>(literal);
-      return json_number_serialize(num);
-    } else if (std::holds_alternative<std::string_view>(literal)) {
-      std::string_view v = std::get<std::string_view>(literal);
-      return std::string(v);
-    } else if (std::holds_alternative<bool>(literal)) {
-      bool b = std::get<bool>(literal);
-      return std::to_string(b);
-    }
-
-    return std::string("null");
-    #endif 
-
     return std::visit(overloaded {
       [](const JSONNumber number) {
         return json_number_serialize(number);

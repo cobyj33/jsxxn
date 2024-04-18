@@ -1,6 +1,6 @@
 # jsxxn
 
-A **hobby** one-source one-header JSON parser for C++ 17 - built with the STL
+A **hobby** JSON parser for C++ 17 - built with the STL
 Library and based on the [RFC 8259](https://www.rfc-editor.org/rfc/rfc8259)
 JSON standard.
 

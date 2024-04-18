@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.7)
 # * I decided that 3.7 was a good place to settle. Since it was released in
 # * 2018, it shouldn't be hard to get on your system.
 
-# A great resource for CMake is https://cliutils.gitlab.io/modern-cmake/ if
-# you'd like to learn
+# Great resources for CMake:
+#    https://cliutils.gitlab.io/modern-cmake/
+#    https://gist.github.com/mbinna/c61dbb39bca0e4fb7d1f73b0d66a4fd1
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Dev: Developer comments start with "# D:". If specific implementation details

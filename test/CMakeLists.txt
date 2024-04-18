@@ -20,11 +20,13 @@ FetchContent_MakeAvailable(Catch2)
 set(JSXXN_UNITTEST_DIRECTORY ${JSXXN_TEST_DIRECTORY}/unittest)
 
 set(JSXXN_UNITTEST_SOURCE_FILES
+${JSXXN_UNITTEST_DIRECTORY}/dom.cpp
+${JSXXN_UNITTEST_DIRECTORY}/equality.cpp
 ${JSXXN_UNITTEST_DIRECTORY}/parsing.cpp
-${JSXXN_UNITTEST_DIRECTORY}/serializing.cpp
-${JSXXN_UNITTEST_DIRECTORY}/reserialization.cpp
 ${JSXXN_UNITTEST_DIRECTORY}/reparsing.cpp
-${JSXXN_UNITTEST_DIRECTORY}/equality.cpp)
+${JSXXN_UNITTEST_DIRECTORY}/reserialization.cpp
+${JSXXN_UNITTEST_DIRECTORY}/serializing.cpp
+)
 
 add_executable(unittest ${JSXXN_UNITTEST_SOURCE_FILES})
 target_link_libraries(unittest PRIVATE jsxxn Catch2::Catch2WithMain)
