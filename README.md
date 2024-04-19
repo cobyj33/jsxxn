@@ -15,10 +15,9 @@ data before.
 > * [open-source-parsers/jsoncpp](https://github.com/open-source-parsers/jsoncpp)
 > jsxxn one was created mostly as a challenge and a learning experience!
 
-While jsxxn does work with reasonable data and it ostensibly works with
-unreasonable data, and it does provide the correct result for all tests in the
-test/data directory, not every edge case has been fuzzed or tested to a 100%
-confidence degree as of yet. (or fuzzed at all for that matter)
+While jsxxn does pass all of its given tests,
+not every edge case has been fuzzed or tested to a 100%
+confidence degree as of yet.
 
 Example usage can be found in the examples/ directory
 
@@ -26,22 +25,20 @@ Example usage can be found in the examples/ directory
 
 ### Resources - Standards, Grammars, and Descriptions
 
-[json.org](https://www.json.org/json-en.html)
-
-[RFC 8259](https://www.rfc-editor.org/rfc/rfc8259)
-
-[ECMA 404 JSON Standard](https://ecma-international.org/publications-and-standards/standards/ecma-404/)
-
-[RFC 4627](https://www.ietf.org/rfc/rfc4627.txt)
+* [json.org](https://www.json.org/json-en.html)
+* [RFC 8259](https://www.rfc-editor.org/rfc/rfc8259)
+* [ECMA 404 JSON Standard](https://ecma-international.org/publications-and-standards/standards/ecma-404/)
+* [RFC 4627](https://www.ietf.org/rfc/rfc4627.txt)
 
 ### Resources - Blog Posts
 
-[Parsing JSON is a Minefield - Nicolas Seriot](https://seriot.ch/projects/parsing_json.html)
+* [Parsing JSON is a Minefield - Nicolas Seriot](https://seriot.ch/projects/parsing_json.html)
 
 ### Resources - Test Suites
 
-[nst/JSONTestSuite](https://github.com/nst/JSONTestSuite)
+* [nst/JSONTestSuite](https://github.com/nst/JSONTestSuite)
+* [JSXXN_checker](https://json.org/JSXXN_checker/)
 
-[JSXXN_checker](https://json.org/JSXXN_checker/)
+### Resources - Benchmark Suites
 
-
+* [miloyip/nativejson-benchmark](https://github.com/miloyip/nativejson-benchmark)
