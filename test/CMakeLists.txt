@@ -32,4 +32,3 @@ add_executable(unittest ${JSXXN_UNITTEST_SOURCE_FILES})
 target_link_libraries(unittest PRIVATE jsxxn Catch2::Catch2WithMain)
 target_compile_options(unittest PRIVATE ${JSXXN_COMPILE_OPTIONS})
 target_compile_features(unittest PRIVATE ${JSXXN_COMPILE_FEATURES})
-

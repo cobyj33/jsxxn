@@ -77,15 +77,15 @@ namespace jsxxn {
     return *this;
   }
 
-  JSONValueType JSON::type() {
+  JSONValueType JSON::type() const {
     return json_value_get_type(this->value);
   }
 
-  JSXXNValueType JSON::xtype() {
+  JSXXNValueType JSON::xtype() const {
     return json_value_get_xtype(this->value);
   }
 
-  bool JSON::equals_deep(const JSON& other) {
+  bool JSON::equals_deep(const JSON& other) const {
     return json_value_equals_deep(this->value, other.value);
   }
 
@@ -106,6 +106,7 @@ namespace jsxxn {
   }
 
   JSON::operator JSONValue&() { return this->value; }
+  JSON::operator const JSONValue&() const { return this->value; }
 
   JSON::operator JSONArray&() {
     if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
@@ -239,8 +240,20 @@ namespace jsxxn {
     throw std::runtime_error("[JSON::operator[]] indexing non-array type"); 
   }
 
+  const JSON& JSON::operator[](std::size_t idx) const {
+    if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return (*arr)[idx];
+    throw std::runtime_error("[JSON::operator[]] indexing non-array type"); 
+  }
+
   JSON& JSON::at(std::size_t idx) {
     if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->at(idx);
+    throw std::runtime_error("[JSON::operator[]] indexing non-array type"); 
+  }
+
+  const JSON& JSON::at(std::size_t idx) const {
+    if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
       return arr->at(idx);
     throw std::runtime_error("[JSON::operator[]] indexing non-array type"); 
   }

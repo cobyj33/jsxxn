@@ -11,7 +11,7 @@ namespace jsxxn {
   void stringify(const JSONValue& json, unsigned int depth, std::string& output);
   void json_literal_serialize(const JSONLiteral& literal, std::string& output);
   void json_number_serialize(const JSONNumber& number, std::string& output);
-  void json_string_serialize(const std::string_view str, std::string& output);
+  void json_string_serialize(std::string_view str, std::string& output);
 
   inline void u16_as_hexstr(std::uint16_t val, std::string& output) {
     output.push_back(xdigit_as_ch((val & 0xF000) >> 12));
@@ -56,7 +56,7 @@ namespace jsxxn {
     return output;
   }
 
-  void json_string_serialize(const std::string_view str, std::string& output) {
+  void json_string_serialize(std::string_view str, std::string& output) {
     output.push_back('\"');
 
     for (std::string_view::size_type i = 0; i < str.size(); i++) {

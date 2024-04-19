@@ -33,6 +33,18 @@ OPTION(JSXXN_ENABLE_GPROF "Add -pg to compiler flags on gcc and clang (Default O
 OPTION(JSXXN_BUILD_EXAMPLES "Build Examples" OFF)
 OPTION(JSXXN_BUILD_TESTS "Build Tests" OFF)
 
+# clang++ can be set as the compiler using -DCMAKE_CXX_COMPILER=/path/to/clang++
+# The path to clang++ provided by many linux distributions is /usr/bin/clang++
+# if clang++ has been downloaded through the system package manager
+OPTION(JSXXN_BUILD_FUZZER "Build Fuzzer (Must compile with clang++)" OFF)
+
+message("+-|JSXXN CONFIGURATION|--------------------------+")
+message("| JSXXN_ENABLE_GPROF:     ${JSXXN_ENABLE_GPROF}")
+message("| JSXXN_BUILD_EXAMPLES:   ${JSXXN_BUILD_EXAMPLES}")
+message("| JSXXN_BUILD_TESTS:      ${JSXXN_BUILD_TESTS}")
+message("| JSXXN_BUILD_FUZZER:     ${JSXXN_BUILD_FUZZER}")
+message("+------------------------------------------------+")
+
 if (JSXXN_IS_TOP_LEVEL)
   set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 endif()
@@ -63,6 +75,7 @@ set(JSXXN_SRC_DIRECTORY ${CMAKE_SOURCE_DIR}/src)
 set(JSXXN_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/include)
 set(JSXXN_IMPL_INCLUDE_DIRECTORY ${JSXXN_SRC_DIRECTORY})
 set(JSXXN_TEST_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
+set(JSXXN_FUZZER_DIRECTORY ${CMAKE_SOURCE_DIR}/fuzzer)
 
 set(JSXXN_SOURCE_FILES
 ${JSXXN_SRC_DIRECTORY}/jsxxn.cpp
@@ -78,11 +91,22 @@ target_compile_options(jsxxn PUBLIC ${JSXXN_COMPILE_OPTIONS})
 target_compile_features(jsxxn PRIVATE ${JSXXN_COMPILE_FEATURES})
 
 if (JSXXN_BUILD_EXAMPLES)
-  message("[jsxxn] Entering Examples Directory")
+  message(DEBUG "[jsxxn] Entering Examples Directory")
   add_subdirectory(${JSXXN_EXAMPLES_DIRECTORY})
 endif()
 
 if (JSXXN_BUILD_TESTS)
-  message("[jsxxn] Entering Tests Directory")
+  message(DEBUG "[jsxxn] Entering Tests Directory")
   add_subdirectory(${JSXXN_TEST_DIRECTORY})
+endif()
+
+if (JSXXN_BUILD_FUZZER)
+  if (((CMAKE_CXX_COMPILER_ID STREQUAL "Clang")))
+    message(DEBUG "[jsxxn] Entering fuzzer Directory")
+    add_subdirectory(${JSXXN_FUZZER_DIRECTORY})
+  else()
+    message(WARNING "[jsxxn fuzzer] Cannot build fuzzer: detected compiler is \
+    not Clang++. Got compiler ID '${CMAKE_CXX_COMPILER_ID}' and compiler name \
+    '${CMAKE_CXX_COMPILER}'")
+  endif()
 endif()

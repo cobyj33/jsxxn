@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cfloat>
 #include <climits>
+#include <cctype>
 
 namespace jsxxn {
 
@@ -36,20 +37,32 @@ namespace jsxxn {
   bool exact_match(std::string_view str, std::string_view check, std::size_t start);
   const char* ascii_cstr(char ch);
 
+  /**
+   * Always defined
+  */
   inline std::string ascii_str(char ch) {
     return std::string(ascii_cstr(ch));
   }
 
+  /**
+   * Safe to call with an empty string_view
+  */
   inline std::string sec_string(std::string_view v, std::size_t ind) {
     return sec_string(v, ind, ind);
   }
 
+  /**
+   * Safe to call with an empty string_view
+  */
   inline std::string_view interpret_utf8char(std::string_view utf8char) {
     if (utf8char.size() == 1UL && static_cast<std::uint8_t>(utf8char[0]) <= 0x7F)
       return ascii_cstr(utf8char[0]);
     return utf8char;
   }
 
+  /**
+   * Safe to call with an empty string_view
+  */
   inline std::string utf8charstr(std::string_view utf8char) {
     return std::string(interpret_utf8char(utf8char));
   }
@@ -138,16 +151,16 @@ namespace jsxxn {
     if ((stridx(ls.str, lookahead)) == '.')
       throw std::runtime_error(err_deci_no_int(ls.str, start, lookahead));
 
-    if (!isdigit(stridx(ls.str, lookahead)))
+    if (!std::isdigit(stridx(ls.str, lookahead)))
       throw std::runtime_error(err_no_int_part(ls.str, start, lookahead));
 
-    if (ls.str[lookahead] == '0' && isdigit(stridx(ls.str, lookahead + 1)))
+    if (ls.str[lookahead] == '0' && std::isdigit(stridx(ls.str, lookahead + 1)))
       throw std::runtime_error(err_lead_zeros(ls.str, start, lookahead + 1)); 
 
-    for (; lookahead < ls.size && isdigit(ls.str[lookahead]); lookahead++); // consume integer part
+    for (; lookahead < ls.size && std::isdigit(ls.str[lookahead]); lookahead++); // consume integer part
 
     if (stridx(ls.str, lookahead) == '.') { // float handling
-      if (!isdigit(stridx(ls.str, lookahead + 1)))
+      if (!std::isdigit(stridx(ls.str, lookahead + 1)))
         throw std::runtime_error(err_trailing_dec(ls.str, start, lookahead));
       return tokenize_float(ls);
     }
@@ -198,7 +211,7 @@ namespace jsxxn {
     std::int64_t sign = 1LL + (-2LL * (ls.str[ls.curr] == '-'));
     ls.curr += ls.str[ls.curr] == '-';
 
-    for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
+    for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
       std::int64_t digit = (ls.str[ls.curr] - '0');
       if ((INT64_MAX - digit) / 10LL <= num) {
         ls.curr = start;
@@ -218,10 +231,10 @@ namespace jsxxn {
       unsigned int exponential = 0;
       ls.curr += stridx(ls.str, ls.curr) == '+';
 
-      if (!isdigit(stridx(ls.str, ls.curr)))
+      if (!std::isdigit(stridx(ls.str, ls.curr)))
         throw std::runtime_error(err_missing_exp_part(ls.str, start, ls.curr));
 
-      for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
+      for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
         exponential = exponential * 10 + (ls.str[ls.curr] - '0');
         if (exponential > MAX_EXPONENTIAL) {
           ls.curr = start;
@@ -250,7 +263,7 @@ namespace jsxxn {
     ls.curr += ls.str[ls.curr] == '-'; 
 
     // read integer part
-    for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
+    for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
       double digit = (ls.str[ls.curr] - '0');
       if ((DBL_MAX - digit) / 10.0 <= num)
         throw std::runtime_error(err_num_overflow(ls.str, start, ls.curr));
@@ -260,7 +273,7 @@ namespace jsxxn {
     if (stridx(ls.str, ls.curr) == '.') { // read fractional part
       ls.curr++; // consume decimal
       double frac_mult = 0.1;
-      for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
+      for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
         num += (ls.str[ls.curr] - '0') * frac_mult;
         frac_mult /= 10;
       }
@@ -274,10 +287,10 @@ namespace jsxxn {
       bool minus = stridx(ls.str, ls.curr) == '-';
       ls.curr += minus || stridx(ls.str, ls.curr) == '+';
 
-      if (!isdigit(stridx(ls.str, ls.curr)))
+      if (!std::isdigit(stridx(ls.str, ls.curr)))
         throw std::runtime_error(err_missing_exp_part(ls.str, start, ls.curr));
 
-      for (; ls.curr < ls.size && isdigit(ls.str[ls.curr]); ls.curr++) {
+      for (; ls.curr < ls.size && std::isdigit(ls.str[ls.curr]); ls.curr++) {
         exponential = exponential * 10 + (ls.str[ls.curr] - '0');
       }
 
@@ -391,7 +404,11 @@ namespace jsxxn {
     return i == check.length();
   }
 
+  /**
+   * Safe to call with an empty string_view
+  */
   std::string sec_string(std::string_view v, std::size_t start, std::size_t end) {
+    if (v.length() == 0) return std::string("()");
     std::stringstream ss;
     start = utf8beg(v, start);
     end = utf8gnext(v, end);

@@ -24,6 +24,7 @@ namespace jsxxn {
 
   typedef std::variant<JSONLiteral, JSONObject, JSONArray> JSONValue;
 
+  typedef std::string JSONSerializeFunc(const jsxxn::JSONValue& value);
 
   enum class JSONValueType {
     OBJECT,
@@ -107,10 +108,10 @@ namespace jsxxn {
       explicit JSON(const JSONValue& value);
       explicit JSON(JSONValue&& value);
 
-      bool equals_deep(const JSON& other);
+      bool equals_deep(const JSON& other) const;
       
-      JSONValueType type();
-      JSXXNValueType xtype();
+      JSONValueType type() const;
+      JSXXNValueType xtype() const;
 
       JSON& operator=(const JSON& other);
       JSON& operator=(JSON&& other);
@@ -130,6 +131,7 @@ namespace jsxxn {
       explicit operator std::int64_t();
       explicit operator std::nullptr_t();
       operator JSONValue&();
+      operator const JSONValue&() const;
       explicit operator JSONArray&();
       explicit operator JSONObject&();
 
@@ -141,12 +143,14 @@ namespace jsxxn {
       // Array Methods
       void push_back(const JSON& json);
       void push_back(JSON&& json);
+      const JSON& operator[](std::size_t idx) const;
       JSON& operator[](std::size_t idx);
       JSON& at(std::size_t idx);
-      JSON& front();
-      JSON& back();
+      const JSON& at(std::size_t idx) const;
       void pop_back();
+      JSON& front();
       const JSON& front() const;
+      JSON& back();
       const JSON& back() const;
 
       #if __cplusplus > 201703L

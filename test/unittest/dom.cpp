@@ -22,4 +22,17 @@ TEST_CASE("dom") {
     REQUIRE(json.xtype() == jsxxn::JSXXNValueType::DOUBLE);
   }
 
+  SECTION("Flat Object Construction") {
+    jsxxn::JSON arr(jsxxn::JSONValueType::ARRAY);
+
+    arr.push_back(5);
+    arr.push_back(3);
+    REQUIRE(arr.at(1).equals_deep(3));
+  }
+
+  SECTION("Flat Array Construction") {
+
+
+  }
+
 }

@@ -15,7 +15,7 @@
 
 std::string read_file_to_string(std::string path);
 
-int printer_main(int argc, char** argv, JSONPrinterFunc printer_func) {
+int printer_main(int argc, char** argv, jsxxn::JSONSerializeFunc printer_func) {
   std::optional<bool> stdin_is_tty = jsxxn_is_stdin_atty();
   bool piped = false;
   if (stdin_is_tty.has_value()) piped = !(stdin_is_tty.value());

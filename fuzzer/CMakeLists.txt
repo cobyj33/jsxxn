@@ -1,0 +1,5 @@
+set(JSXXN_FUZZ_COMMAND -fsanitize=fuzzer,address,undefined,null,signed-integer-overflow)
+add_executable(fuzzer ${JSXXN_FUZZER_DIRECTORY}/fuzzer.cpp)
+target_link_libraries(fuzzer PRIVATE jsxxn -coverage ${JSXXN_FUZZ_COMMAND})
+target_compile_options(fuzzer PRIVATE ${JSXXN_COMPILE_OPTIONS} ${JSXXN_FUZZ_COMMAND})
+target_compile_features(fuzzer PRIVATE ${JSXXN_COMPILE_FEATURES})
