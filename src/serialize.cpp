@@ -91,15 +91,15 @@ namespace jsxxn {
 
   void json_literal_serialize(const JSONLiteral& literal, std::string& output) { 
     std::visit(overloaded {
-      [&](const JSONNumber& number) { json_number_serialize(number, output); },
-      [&](const std::nullptr_t nptr) {
+      [&output](const JSONNumber& number) { json_number_serialize(number, output); },
+      [&output](const std::nullptr_t nptr) {
         (void)nptr;
         output += "null";
       },
-      [&](const bool boolean) {
+      [&output](const bool boolean) {
         output += boolean ? "true" : "false";
       },
-      [&](const std::string& str) {
+      [&output](const std::string& str) {
         json_string_serialize(str, output);
       }
     }, literal);
@@ -112,10 +112,10 @@ namespace jsxxn {
     }
 
     std::visit(overloaded { 
-      [&](const JSONLiteral& literal) {
+      [&output](const JSONLiteral& literal) {
         json_literal_serialize(literal, output);
       },
-      [&](const JSONObject& object) {
+      [&output, depth](const JSONObject& object) {
         if (object.size() == 0) {
           output += "{}";
           return;
@@ -136,7 +136,7 @@ namespace jsxxn {
         output.append(depth * 2, ' ');
         output.push_back('}');
       },
-      [&](const JSONArray& arr) {
+      [&output, depth](const JSONArray& arr) {
         if (arr.size() == 0) {
           output += "[]";
           return;
@@ -163,10 +163,10 @@ namespace jsxxn {
     }
 
     std::visit(overloaded { 
-      [&](const JSONLiteral& literal) {
+      [&output](const JSONLiteral& literal) {
         json_literal_serialize(literal, output);
       },
-      [&](const JSONObject& object) {
+      [&output, depth](const JSONObject& object) {
         output.push_back('{');
 
         for (const std::pair<const std::string, JSON>& entry : object) {
@@ -180,7 +180,7 @@ namespace jsxxn {
           output.resize(output.size() - 1);
         output.push_back('}');
       },
-      [&](const JSONArray& arr) {
+      [&output, depth](const JSONArray& arr) {
         output.push_back('[');
 
         for (JSONArray::size_type i = 0; i < arr.size(); i++) {
