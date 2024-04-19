@@ -40,7 +40,14 @@ TEST_CASE("dom") {
     REQUIRE(val.xtype() == jsxxn::JSXXNValueType::SINTEGER);
     val = "a little string";
     REQUIRE(val.type() == jsxxn::JSONValueType::STRING);
-    val = jsxxn::JSONObject({ {"key", "value"}, {"key2", jsxxn::JSONObject({ { "key", "value" }}) });
+
+    val = jsxxn::JSONObject({
+      {"key", "value"},
+      {"key2", jsxxn::JSONObject({
+        { "key", "value" }
+      }) 
+    } });
+    
     REQUIRE(val.type() == jsxxn::JSONValueType::OBJECT);
     val = 5.5;
     REQUIRE(val.xtype() == jsxxn::JSXXNValueType::DOUBLE);
