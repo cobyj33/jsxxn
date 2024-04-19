@@ -1,4 +1,5 @@
 #include "jsxxn.h"
 
-typedef std::string JSONPrinterFunc(const jsxxn::JSONValue& value);
-int printer_main(int argc, char** argv, JSONPrinterFunc printer);
+// see comment in printer.cpp
+
+int printer_main(int argc, char** argv, jsxxn::JSONSerializeFunc printer);

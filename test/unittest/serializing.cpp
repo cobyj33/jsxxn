@@ -5,6 +5,6 @@
 TEST_CASE("serializing") {
   
   SECTION("trivial") {
-    REQUIRE(jsxxn::serialize(jsxxn::parse("{}")) == jsxxn::serialize(jsxxn::JSONObject()));
+    REQUIRE(jsxxn::prettify(jsxxn::parse("{}")) == jsxxn::prettify(jsxxn::JSONObject()));
   }
 }

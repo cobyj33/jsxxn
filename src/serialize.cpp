@@ -1,15 +1,17 @@
 #include "jsxxn_impl.h"
 
+#include "jsxxn_string.h"
+
 #include <stdexcept>
 #include <sstream>
 
 
 namespace jsxxn {
-  void serialize(const JSONValue& json, unsigned int depth, std::string& output);
+  void prettify(const JSONValue& json, unsigned int depth, std::string& output);
   void stringify(const JSONValue& json, unsigned int depth, std::string& output);
   void json_literal_serialize(const JSONLiteral& literal, std::string& output);
   void json_number_serialize(const JSONNumber& number, std::string& output);
-  void json_string_serialize(const std::string_view str, std::string& output);
+  void json_string_serialize(std::string_view str, std::string& output);
 
   inline void u16_as_hexstr(std::uint16_t val, std::string& output) {
     output.push_back(xdigit_as_ch((val & 0xF000) >> 12));
@@ -18,9 +20,9 @@ namespace jsxxn {
     output.push_back(xdigit_as_ch(val & 0x000F));
   }
   
-  std::string serialize(const JSONValue& json) {
+  std::string prettify(const JSONValue& json) {
     std::string output;
-    serialize(json, 0, output);
+    prettify(json, 0, output);
     return output;
   }
 
@@ -54,7 +56,7 @@ namespace jsxxn {
     return output;
   }
 
-  void json_string_serialize(const std::string_view str, std::string& output) {
+  void json_string_serialize(std::string_view str, std::string& output) {
     output.push_back('\"');
 
     for (std::string_view::size_type i = 0; i < str.size(); i++) {
@@ -89,31 +91,31 @@ namespace jsxxn {
 
   void json_literal_serialize(const JSONLiteral& literal, std::string& output) { 
     std::visit(overloaded {
-      [&](const JSONNumber& number) { json_number_serialize(number, output); },
-      [&](const std::nullptr_t nptr) {
+      [&output](const JSONNumber& number) { json_number_serialize(number, output); },
+      [&output](const std::nullptr_t nptr) {
         (void)nptr;
         output += "null";
       },
-      [&](const bool boolean) {
+      [&output](const bool boolean) {
         output += boolean ? "true" : "false";
       },
-      [&](const std::string& str) {
+      [&output](const std::string& str) {
         json_string_serialize(str, output);
       }
     }, literal);
   }
 
-  void serialize(const JSONValue& json, unsigned int depth, std::string& output) {
+  void prettify(const JSONValue& json, unsigned int depth, std::string& output) {
     if (depth > JSXXN_IMPL_MAX_NESTING_DEPTH) {
-      throw std::runtime_error("[jsxxn::serialize] Exceeded max nesting "
+      throw std::runtime_error("[jsxxn::prettify] Exceeded max nesting "
       "depth of " + std::to_string(JSXXN_IMPL_MAX_NESTING_DEPTH));
     }
 
     std::visit(overloaded { 
-      [&](const JSONLiteral& literal) {
+      [&output](const JSONLiteral& literal) {
         json_literal_serialize(literal, output);
       },
-      [&](const JSONObject& object) {
+      [&output, depth](const JSONObject& object) {
         if (object.size() == 0) {
           output += "{}";
           return;
@@ -125,7 +127,7 @@ namespace jsxxn {
           output.append((depth + 1) * 2, ' ');
           json_string_serialize(entry.first, output); 
           output += ": "; 
-          serialize(entry.second.value, depth + 1, output);
+          prettify(entry.second.value, depth + 1, output);
           if (i != object.size() - 1) output += ", ";
           output.push_back('\n');
           i++;
@@ -134,7 +136,7 @@ namespace jsxxn {
         output.append(depth * 2, ' ');
         output.push_back('}');
       },
-      [&](const JSONArray& arr) {
+      [&output, depth](const JSONArray& arr) {
         if (arr.size() == 0) {
           output += "[]";
           return;
@@ -143,7 +145,7 @@ namespace jsxxn {
         output += "[\n";
         for (JSONArray::size_type i = 0; i < arr.size(); i++) {
           output.append((depth + 1) * 2, ' ');
-          serialize(arr[i].value, depth + 1, output);
+          prettify(arr[i].value, depth + 1, output);
           if (i != arr.size() - 1) output += ", ";
           output.push_back('\n');
         }
@@ -156,15 +158,15 @@ namespace jsxxn {
 
   void stringify(const JSONValue& json, unsigned int depth, std::string& output) {
     if (depth > JSXXN_IMPL_MAX_NESTING_DEPTH) {
-      throw std::runtime_error("[jsxxn::serialize] Exceeded max nesting "
+      throw std::runtime_error("[jsxxn::prettify] Exceeded max nesting "
       "depth of " + std::to_string(JSXXN_IMPL_MAX_NESTING_DEPTH));
     }
 
     std::visit(overloaded { 
-      [&](const JSONLiteral& literal) {
+      [&output](const JSONLiteral& literal) {
         json_literal_serialize(literal, output);
       },
-      [&](const JSONObject& object) {
+      [&output, depth](const JSONObject& object) {
         output.push_back('{');
 
         for (const std::pair<const std::string, JSON>& entry : object) {
@@ -178,7 +180,7 @@ namespace jsxxn {
           output.resize(output.size() - 1);
         output.push_back('}');
       },
-      [&](const JSONArray& arr) {
+      [&output, depth](const JSONArray& arr) {
         output.push_back('[');
 
         for (JSONArray::size_type i = 0; i < arr.size(); i++) {

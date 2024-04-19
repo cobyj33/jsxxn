@@ -12,7 +12,9 @@ int main(int argc, char** argv) {
 
   // Raw string literal documentation: https://en.cppreference.com/w/cpp/language/string_literal
   
-  // Data from RFC 8259 section 13 (https://www.rfc-editor.org/rfc/rfc8259#section-13)
+  // The json in this given section is publicly available from 
+  // RFC 8259 (The JavaScript Object Notation (JSON) Data Interchange Format)
+  // section 13 (https://www.rfc-editor.org/rfc/rfc8259#section-13)
 
   jsxxn::JSON parsed = jsxxn::parse(R"([ 
     {
@@ -37,7 +39,7 @@ int main(int argc, char** argv) {
     }
   ])");
 
-  std::cout << jsxxn::serialize(parsed) << std::endl;
+  std::cout << jsxxn::prettify(parsed) << std::endl;
   
   // switching json object with another json object
   parsed = jsxxn::parse(R"({
@@ -55,7 +57,7 @@ int main(int argc, char** argv) {
       }
   })");
 
-  std::cout << jsxxn::serialize(parsed) << std::endl;
+  std::cout << jsxxn::prettify(parsed) << std::endl;
     
 
   return 0;

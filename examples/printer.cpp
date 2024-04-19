@@ -4,12 +4,19 @@
 #include <iostream>
 #include <fstream>
 
-
+/**
+ * printer.cpp is not provided as an executable in itself, but is instead used
+ * as the back-end for how pretty.cpp and stringify.cpp work. I wanted to keep
+ * the pretty.cpp and stringify.cpp executables as simply parsing and serializing
+ * json in their respective formats with no specific options needed. However,
+ * since they both behave exactly the same besides the format printed, they
+ * shouldn't have completely separate implementations.
+*/
 
 std::string read_file_to_string(std::string path);
 
-int printer_main(int argc, char** argv, JSONPrinterFunc printer_func) {
-  std::optional<bool> stdin_is_tty = json_is_stdin_atty();
+int printer_main(int argc, char** argv, jsxxn::JSONSerializeFunc printer_func) {
+  std::optional<bool> stdin_is_tty = jsxxn_is_stdin_atty();
   bool piped = false;
   if (stdin_is_tty.has_value()) piped = !(stdin_is_tty.value());
   if (argc < 2 && !piped) {
@@ -17,6 +24,9 @@ int printer_main(int argc, char** argv, JSONPrinterFunc printer_func) {
     return 1;
   }
 
+
+  // exitcode returns EXIT_SUCCESS if any given input is parsed successfuly. If
+  // all input fails to parse, then EXIT_FAILURE is returned.
   int exitcode = EXIT_FAILURE;
 
   if (piped) { // pipe or something else

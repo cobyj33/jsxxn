@@ -49,9 +49,21 @@ namespace jsxxn {
       case JSONValueType::ARRAY: this->value = JSONArray(); break;
       case JSONValueType::OBJECT: this->value = JSONObject(); break;
       case JSONValueType::BOOLEAN: this->value = false; break;
-      case JSONValueType::NUMBER: this->value = 0; break;
+      case JSONValueType::NUMBER: this->value = 0.0; break;
       case JSONValueType::STRING: this->value = std::string(); break;
       case JSONValueType::NULLPTR: this->value = nullptr; break;
+    }
+  }
+
+  JSON::JSON(JSXXNValueType type) {
+    switch (type) {
+      case JSXXNValueType::ARRAY: this->value = JSONArray(); break;
+      case JSXXNValueType::OBJECT: this->value = JSONObject(); break;
+      case JSXXNValueType::BOOLEAN: this->value = false; break;
+      case JSXXNValueType::SINTEGER: this->value = 0; break;
+      case JSXXNValueType::DOUBLE: this->value = 0.0; break;
+      case JSXXNValueType::STRING: this->value = std::string(); break;
+      case JSXXNValueType::NULLPTR: this->value = nullptr; break;
     }
   }
 
@@ -65,11 +77,15 @@ namespace jsxxn {
     return *this;
   }
 
-  JSONValueType JSON::type() {
+  JSONValueType JSON::type() const {
     return json_value_get_type(this->value);
   }
 
-  bool JSON::equals_deep(const JSON& other) {
+  JSXXNValueType JSON::xtype() const {
+    return json_value_get_xtype(this->value);
+  }
+
+  bool JSON::equals_deep(const JSON& other) const {
     return json_value_equals_deep(this->value, other.value);
   }
 
@@ -90,6 +106,7 @@ namespace jsxxn {
   }
 
   JSON::operator JSONValue&() { return this->value; }
+  JSON::operator const JSONValue&() const { return this->value; }
 
   JSON::operator JSONArray&() {
     if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
@@ -167,23 +184,14 @@ namespace jsxxn {
     throw std::runtime_error("[JSON::clear] tried to clear non-container type");
   }
 
-  JSON& JSON::operator[](const std::string& key) {
-    if (JSONObject* map = std::get_if<JSONObject>(&this->value))
-      return (*map)[key];
-    throw std::runtime_error("[JSON::operator[]] searching key on non-object "
-    "type");
-  }
+
+  // -----------------------------------------------------------
+  //                    Object Functions
+  // -----------------------------------------------------------
 
   JSON& JSON::operator[](std::string_view key) {
     if (JSONObject* map = std::get_if<JSONObject>(&this->value))
       return (*map).find(key)->second;
-    throw std::runtime_error("[JSON::operator[]] searching key on non-object "
-    "type");
-  }
-
-  JSON& JSON::at(const std::string& key) {
-    if (JSONObject* map = std::get_if<JSONObject>(&this->value))
-      return map->at(key);
     throw std::runtime_error("[JSON::operator[]] searching key on non-object "
     "type");
   }
@@ -198,23 +206,9 @@ namespace jsxxn {
     "type");
   }
 
-  jsxxn::JSONObject::size_type JSON::count(const std::string& key) const {
-    if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
-      return map->count(key);
-    throw std::runtime_error("[JSON::count] searching key on non-object "
-    "type");
-  }
-
   jsxxn::JSONObject::size_type JSON::count(std::string_view key) const {
     if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
       return map->count(key);
-    throw std::runtime_error("[JSON::count] searching key on non-object "
-    "type");
-  }
-
-  bool JSON::contains(const std::string& key) const {
-    if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
-      return map->count(key) == 1;
     throw std::runtime_error("[JSON::count] searching key on non-object "
     "type");
   }
@@ -235,8 +229,19 @@ namespace jsxxn {
   }
 
 
+  // -----------------------------------------------------------
+  //                    Array Functions
+  // -----------------------------------------------------------
+
+
   JSON& JSON::operator[](std::size_t idx) {
     if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return (*arr)[idx];
+    throw std::runtime_error("[JSON::operator[]] indexing non-array type"); 
+  }
+
+  const JSON& JSON::operator[](std::size_t idx) const {
+    if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
       return (*arr)[idx];
     throw std::runtime_error("[JSON::operator[]] indexing non-array type"); 
   }
@@ -247,10 +252,19 @@ namespace jsxxn {
     throw std::runtime_error("[JSON::operator[]] indexing non-array type"); 
   }
 
+  const JSON& JSON::at(std::size_t idx) const {
+    if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->at(idx);
+    throw std::runtime_error("[JSON::operator[]] indexing non-array type"); 
+  }
+
   void JSON::push_back(JSON&& json) {
     if (JSONArray* arr = std::get_if<JSONArray>(&this->value)) {
       arr->push_back(std::move(json));
       return;
+    } else if (std::holds_alternative<JSONLiteral>(this->value)) {
+      this->value = JSONArray();
+      arr->push_back(std::move(json));
     }
     throw std::runtime_error("[JSON::push_back] pushing on non-array type"); 
   }
@@ -269,8 +283,20 @@ namespace jsxxn {
     throw std::runtime_error("[JSON::front] getting front of non-array type");
   }
 
+  const JSON& JSON::front() const {
+    if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->front();
+    throw std::runtime_error("[JSON::front] getting front of non-array type");
+  } 
+
   JSON& JSON::back() {
     if (JSONArray* arr = std::get_if<JSONArray>(&this->value))
+      return arr->back();
+    throw std::runtime_error("[JSON::back] getting back of non-array type");
+  }
+
+  const JSON& JSON::back() const {
+    if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
       return arr->back();
     throw std::runtime_error("[JSON::back] getting back of non-array type");
   }
@@ -281,18 +307,6 @@ namespace jsxxn {
       return;
     }
     throw std::runtime_error("[JSON::pop_back] popping back of non-array type");
-  }
-
-  const JSON& JSON::front() const {
-    if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
-      return arr->front();
-    throw std::runtime_error("[JSON::front] getting front of non-array type");
-  } 
-
-  const JSON& JSON::back() const {
-    if (const JSONArray* arr = std::get_if<JSONArray>(&this->value))
-      return arr->back();
-    throw std::runtime_error("[JSON::back] getting back of non-array type");
   }
 
   #if __cplusplus > 201703L
