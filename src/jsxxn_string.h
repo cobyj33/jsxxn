@@ -29,7 +29,7 @@ namespace jsxxn {
       case 14: return 'E';
       case 15: return 'F';
     }
-    return '0';
+    return ch;
   }
 
   /**
