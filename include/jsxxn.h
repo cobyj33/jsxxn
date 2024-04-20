@@ -125,12 +125,15 @@ namespace jsxxn {
 
 
       // Literal Methods
-      explicit operator bool();
+      explicit operator bool() const;
+      explicit operator double() const;
+      explicit operator std::int64_t() const;
+      operator JSONNumber() const;
+      explicit operator std::nullptr_t() const;
       explicit operator std::string&();
       explicit operator const std::string& () const;
-      explicit operator double();
-      explicit operator std::int64_t();
-      explicit operator std::nullptr_t();
+      operator JSONLiteral&();
+      operator const JSONLiteral&() const;
       operator JSONValue&();
       operator const JSONValue&() const;
       explicit operator JSONArray&();

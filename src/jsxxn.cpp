@@ -89,12 +89,64 @@ namespace jsxxn {
     return json_value_equals_deep(this->value, other.value);
   }
 
-  JSON::operator bool() {
+  JSON::operator bool() const {
     if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
       if (const bool* boolean = std::get_if<bool>(literal))
         return *boolean;
     throw std::runtime_error("[JSON::operator bool()] cannot cast "
-      "non-bool type to bool");
+    "non-bool type to bool");
+  }
+
+  JSON::operator double() const {
+    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      if (const JSONNumber* number = std::get_if<JSONNumber>(literal))
+        return std::visit(overloaded {
+          [](const std::int64_t val) { return static_cast<double>(val); },
+          [](const double val) { return (val); },
+        }, *number);
+    throw std::runtime_error("[JSON::operator double()] cannot cast non-number "
+    "type to double");
+  }
+
+  JSON::operator std::int64_t() const {
+    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      if (const JSONNumber* number = std::get_if<JSONNumber>(literal))
+        return std::visit(overloaded {
+          [](const std::int64_t val) { return val; },
+          [](const double val) { return (std::int64_t)val; },
+        }, *number);
+    throw std::runtime_error("[JSON::operator std::int64_t()] cannot cast "
+    "non-number type to std::int64_t");
+  }
+
+  JSON::operator JSONNumber() const {
+    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      if (const JSONNumber* number = std::get_if<JSONNumber>(literal))
+        return *number;
+    throw std::runtime_error("[JSON::operator JSONNumber()] cannot cast non-number "
+    "type to JSONNumber");
+  }
+
+  JSON::operator std::nullptr_t() const {
+    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      if (std::holds_alternative<std::nullptr_t>(*literal))
+        return nullptr;
+    throw std::runtime_error("[JSON::operator std::nullptr_t()] cannot cast "
+    "non-nullptr_t type to nullptr_t");
+  }
+
+  JSON::operator JSONLiteral&() {
+    if (JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      return *literal;
+    throw std::runtime_error("[JSON::operator JSONLiteral()] cannot cast "
+    " non-literal type to JSONLiteral");
+  }
+
+  JSON::operator const JSONLiteral&() const {
+    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      return *literal;
+    throw std::runtime_error("[JSON::operator JSONLiteral()] cannot cast "
+    " non-literal type to JSONLiteral");
   }
 
   JSON::operator std::string&() {
@@ -143,36 +195,10 @@ namespace jsxxn {
     throw std::runtime_error("[JSON::operator JSONObject&()] cannot cast "
     "non JSONObject type to JSONObject&");
   }
-  
-  JSON::operator double() {
-    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
-      if (const JSONNumber* number = std::get_if<JSONNumber>(literal))
-        return std::visit(overloaded {
-          [](const std::int64_t val) { return static_cast<double>(val); },
-          [](const double val) { return (val); },
-        }, *number);
-    throw std::runtime_error("[JSON::operator double()] cannot cast non-number "
-    "type to double");
-  }
 
-  JSON::operator std::int64_t() {
-    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
-      if (const JSONNumber* number = std::get_if<JSONNumber>(literal))
-        return std::visit(overloaded {
-          [](const std::int64_t val) { return val; },
-          [](const double val) { return (std::int64_t)val; },
-        }, *number);
-    throw std::runtime_error("[JSON::operator std::int64_t()] cannot cast "
-    "non-number type to std::int64_t");
-  }
-
-  JSON::operator std::nullptr_t() {
-    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
-      if (std::holds_alternative<std::nullptr_t>(*literal))
-        return nullptr;
-    throw std::runtime_error("[JSON::operator std::nullptr_t()] cannot cast "
-    "non-nullptr_t type to nullptr_t");
-  }
+  // -----------------------------------------------------------
+  //                    Container Functions
+  // -----------------------------------------------------------
 
   bool JSON::empty() const {
     if (const JSONObject* map = std::get_if<JSONObject>(&this->value))
