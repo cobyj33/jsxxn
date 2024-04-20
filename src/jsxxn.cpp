@@ -189,9 +189,9 @@ namespace jsxxn {
   //                    Object Functions
   // -----------------------------------------------------------
 
-  JSON& JSON::operator[](std::string_view key) {
+  JSON& JSON::operator[](const std::string& key) {
     if (JSONObject* map = std::get_if<JSONObject>(&this->value))
-      return (*map).find(key)->second;
+      return (*map)[key];
     throw std::runtime_error("[JSON::operator[]] searching key on non-object "
     "type");
   }

@@ -173,7 +173,7 @@ namespace jsxxn {
       // Object Methods
       JSONObject::size_type count(std::string_view key) const;
       bool contains(std::string_view key) const;
-      JSON& operator[](std::string_view key);
+      JSON& operator[](const std::string& key);
       JSON& at(std::string_view key);
       
       template< class... Args >
