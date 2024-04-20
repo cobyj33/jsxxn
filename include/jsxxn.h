@@ -133,7 +133,9 @@ namespace jsxxn {
       operator JSONValue&();
       operator const JSONValue&() const;
       explicit operator JSONArray&();
+      explicit operator const JSONArray&() const;
       explicit operator JSONObject&();
+      explicit operator const JSONObject&() const;
 
       bool empty() const;
       std::size_t size() const;
@@ -143,8 +145,8 @@ namespace jsxxn {
       // Array Methods
       void push_back(const JSON& json);
       void push_back(JSON&& json);
-      const JSON& operator[](std::size_t idx) const;
       JSON& operator[](std::size_t idx);
+      const JSON& operator[](std::size_t idx) const;
       JSON& at(std::size_t idx);
       const JSON& at(std::size_t idx) const;
       void pop_back();
@@ -175,6 +177,7 @@ namespace jsxxn {
       bool contains(std::string_view key) const;
       JSON& operator[](const std::string& key);
       JSON& at(std::string_view key);
+      const JSON& at(std::string_view key) const;
       
       template< class... Args >
       std::pair<JSONObject::iterator, bool> emplace(Args&&... args);
