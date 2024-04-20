@@ -105,6 +105,14 @@ namespace jsxxn {
     " non-string type to string");
   }
 
+  JSON::operator const std::string&() const {
+    if (const JSONLiteral* literal = std::get_if<JSONLiteral>(&this->value))
+      if (const std::string* str = std::get_if<std::string>(literal))
+        return *str;
+    throw std::runtime_error("[JSON::operator std::string()] cannot cast "
+    " non-string type to string");
+  }
+
   JSON::operator JSONValue&() { return this->value; }
   JSON::operator const JSONValue&() const { return this->value; }
 

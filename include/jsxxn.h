@@ -127,6 +127,7 @@ namespace jsxxn {
       // Literal Methods
       explicit operator bool();
       explicit operator std::string&();
+      explicit operator const std::string& () const;
       explicit operator double();
       explicit operator std::int64_t();
       explicit operator std::nullptr_t();
